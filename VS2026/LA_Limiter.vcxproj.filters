@@ -4,9 +4,6 @@
     <ClCompile Include="..\src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\Limiter1.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\LA_Limiter.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -22,9 +19,6 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\vdjPlugin8.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Limiter1.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="..\src\LA_Limiter.h">

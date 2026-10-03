@@ -62,9 +62,9 @@ private:
 
         std::vector<float>    val;
         std::vector<uint64_t> idx;
-        uint32_t mask   = 0;
-        uint32_t head   = 0;
-        uint32_t tail   = 0;
+        uint64_t mask   = 0;
+        uint64_t head   = 0;
+        uint64_t tail   = 0;
         uint64_t count  = 0;
         int      window = 1;
         int      maxWindow = 1;

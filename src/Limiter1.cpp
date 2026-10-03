@@ -1,4 +1,4 @@
-#include "Limiter.h"
+#include "Limiter1.h"
 
 
 //----------------------------------------------------------------------------
@@ -105,11 +105,6 @@ float Limiter::detectTruePeak(float left, float right)
     }
 
     return peak;
-}
-//----------------------------------------------------------------------------
-float Limiter::detectTruePeak_v2(float left, float right)
-{
-    // TODO: Il faut un suéchantillonage 4x par filtre FIR polyphasé (type ITU-R BS.1770)
 }
 //----------------------------------------------------------------------------
 float Limiter::updateEnvelope(float peak)

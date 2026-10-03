@@ -24,6 +24,7 @@ private:
     void resizeBuffers();
     float getPeak(float left, float right);
     float detectTruePeak(float left, float right);
+    float detectTruePeak_v2(float left, float right);
     float calculateTargetGain(float peak);
     float smoothGain(float target, float envelope);
     float updateEnvelope(float peak);

@@ -33,7 +33,7 @@ HRESULT VDJ_API CLA_Limiter::OnGetPluginInfo(TVdjPluginInfo8* infos)
     infos->PluginName = "LA_Limiter";
     infos->Author = "DJ CEL";
     infos->Description = "Look-ahead stereo limiter";
-    infos->Version = "1.0.0";
+    infos->Version = "1.0.1";
     infos->Flags = 0x00;
     infos->Bitmap = NULL;
     return S_OK;

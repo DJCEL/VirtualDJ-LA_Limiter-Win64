@@ -32,6 +32,8 @@ void Limiter::prepare(int vdjsampleRate)
     lookAheadSamples = std::max(1, lookAheadSamples_tmp);
     resizeBuffers();
     reset();
+
+
 }
 //----------------------------------------------------------------------------
 void Limiter::resizeBuffers()
@@ -86,7 +88,6 @@ float Limiter::getPeak(float left, float right)
 float Limiter::detectTruePeak(float left, float right)
 {
     // Simple 4x inter-sample detector. We inspect four points between the previous and current samples.
-    // TODO: Il faut un suéchantillonage 4x par filtre FIR polyphasé (type ITU-R BS.1770)
     float peak = getPeak(left, right);
 	float peak_new = 0.0f;
 	float t = 0.0f;
@@ -104,6 +105,11 @@ float Limiter::detectTruePeak(float left, float right)
     }
 
     return peak;
+}
+//----------------------------------------------------------------------------
+float Limiter::detectTruePeak_v2(float left, float right)
+{
+    // TODO: Il faut un suéchantillonage 4x par filtre FIR polyphasé (type ITU-R BS.1770)
 }
 //----------------------------------------------------------------------------
 float Limiter::updateEnvelope(float peak)

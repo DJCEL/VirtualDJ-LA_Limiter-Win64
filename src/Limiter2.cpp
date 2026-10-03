@@ -21,7 +21,6 @@ namespace
 //----------------------------------------------------------------------------
 // SlidingMin
 //----------------------------------------------------------------------------
-
 void CLimiter2::SlidingMin::init(int maxWin)
 {
     maxWindow = (std::max)(1, maxWin);
@@ -34,13 +33,13 @@ void CLimiter2::SlidingMin::init(int maxWin)
     mask = cap - 1;
     clear();
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::SlidingMin::clear()
 {
     head = tail = 0;
     count = 0;
 }
-
+//----------------------------------------------------------------------------
 float CLimiter2::SlidingMin::push(float v)
 {
     // Drop everything larger or equal: it can never be the minimum again.
@@ -57,11 +56,9 @@ float CLimiter2::SlidingMin::push(float v)
     ++count;
     return val[head & mask];
 }
-
 //----------------------------------------------------------------------------
 // MovingAverage
 //----------------------------------------------------------------------------
-
 void CLimiter2::MovingAverage::init(int len)
 {
     length = (std::max)(1, len);
@@ -69,14 +66,14 @@ void CLimiter2::MovingAverage::init(int len)
     ring.assign(length, 1.0f);
     clear();
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::MovingAverage::clear()
 {
     std::fill(ring.begin(), ring.end(), 1.0f);
     sum = static_cast<double>(length);
     pos = 0;
 }
-
+//----------------------------------------------------------------------------
 float CLimiter2::MovingAverage::push(float v)
 {
     sum += static_cast<double>(v) - static_cast<double>(ring[pos]);
@@ -85,20 +82,19 @@ float CLimiter2::MovingAverage::push(float v)
         pos = 0;
     return static_cast<float>(sum * invLen);
 }
-
 //----------------------------------------------------------------------------
 // Limiter
 //----------------------------------------------------------------------------
-
 CLimiter2::CLimiter2()
 {
     buildTruePeakKernel();
 }
-
+//----------------------------------------------------------------------------
 // 4x oversampling: 3 interpolation phases (1/4, 2/4, 3/4), 12 taps each,
 // Kaiser-windowed sinc, normalized to unity DC gain.
 // Same structure as the ITU-R BS.1770 true-peak interpolator (4x, 48 taps total);
 // swap in the Annex 2 coefficients if strict compliance is needed.
+//----------------------------------------------------------------------------
 void CLimiter2::buildTruePeakKernel()
 {
     const double pi        = 3.14159265358979323846;
@@ -128,7 +124,7 @@ void CLimiter2::buildTruePeakKernel()
             tpKernel[p][i] = static_cast<float>(k[i] / sum);
     }
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::prepare(int vdjSampleRate)
 {
     sampleRate = (std::max)(8000, vdjSampleRate);
@@ -160,7 +156,7 @@ void CLimiter2::prepare(int vdjSampleRate)
     driveSmoothed = driveTarget.load(std::memory_order_relaxed);
     reset();
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::reset()
 {
     std::fill(delayL.begin(), delayL.end(), 0.0f);
@@ -182,40 +178,36 @@ void CLimiter2::reset()
     lastGain.store(1.0f, std::memory_order_relaxed);
     activeFrames.store(0, std::memory_order_relaxed);
 }
-
 //----------------------------------------------------------------------------
-
 void CLimiter2::setThreshold(float db)
 {
     // Maximizer: lowering the threshold drives the signal harder into the ceiling.
     const float t = std::clamp(db, -30.0f, 0.0f);
     driveTarget.store(dbToLinear(-t), std::memory_order_relaxed);
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::setOutput(float db)
 {
     const float c = std::clamp(db, -30.0f, 0.0f);
     ceilingTarget.store(dbToLinear(c), std::memory_order_relaxed);
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::setTruePeak(bool enabled)
 {
     // No reset needed: latency is constant and the detector stream is continuous.
     truePeak.store(enabled, std::memory_order_relaxed);
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::setReleaseMs(float ms)
 {
     releaseMs.store(std::clamp(ms, 5.0f, 1000.0f), std::memory_order_relaxed);
 }
-
+//----------------------------------------------------------------------------
 void CLimiter2::setHoldMs(float ms)
 {
     holdMs.store(std::clamp(ms, 0.0f, 100.0f), std::memory_order_relaxed);
 }
-
 //----------------------------------------------------------------------------
-
 void CLimiter2::process(float* buffer, int frames)
 {
     if (!buffer || frames <= 0 || delayL.empty())
@@ -328,7 +320,6 @@ void CLimiter2::process(float* buffer, int frames)
     lastGain.store(g, std::memory_order_relaxed);
     activeFrames.store(active, std::memory_order_relaxed);
 }
-
 //----------------------------------------------------------------------------
 float CLimiter2::getGainReductionDb() const
 {

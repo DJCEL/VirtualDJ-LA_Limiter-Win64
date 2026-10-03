@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (2026-10-03)
+## 2.0.1 (2026-10-03)
 - New algorithm Limiter2
 - Old algorithm is now Limiter1
 

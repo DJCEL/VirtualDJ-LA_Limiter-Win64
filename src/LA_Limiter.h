@@ -40,6 +40,6 @@ class CLA_Limiter : public IVdjPluginDsp8
         float output_db;
         int m_isOn;
         int nbOn;
-        CLimiter1 limiter;
-        //CLimiter2 limiter;
+        //CLimiter1 limiter;
+        CLimiter2 limiter;
 };

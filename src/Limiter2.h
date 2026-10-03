@@ -14,7 +14,7 @@
 //                              +-> true-peak detector (4x FIR, 12 taps/phase)
 //                                    -> required gain  = min(1, ceiling / peak)
 //                                    -> sliding minimum over `rampLength` samples
-//                                    -> release stage (instant attack, one-pole release)
+//                                    -> hold (min over holdMs) + one-pole release
 //                                    -> moving average over `rampLength` samples  (= attack ramp)
 //
 // The sliding-min followed by a moving average of the same length guarantees that
@@ -33,7 +33,8 @@ public:
     void setThreshold(float db);   // -30..0 dB : drive (input gain = -threshold), maximizer style
     void setOutput(float db);      // -30..0 dB : output ceiling
     void setTruePeak(bool enabled);
-    void setReleaseMs(float ms);   // 5..1000 ms, default 100
+    void setReleaseMs(float ms);   // 5..1000 ms, default 150
+    void setHoldMs(float ms);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
 
     // Audio thread. buffer = interleaved stereo, frames = number of stereo frames.
     void process(float* buffer, int frames);
@@ -53,7 +54,8 @@ private:
     // O(1) amortized sliding-window minimum (monotonic deque).
     struct SlidingMin
     {
-        void  init(int windowSize);
+        void  init(int maxWindow);          // allocates for windows up to maxWindow
+        void  setWindow(int w) { window = (std::max)(1, (std::min)(w, maxWindow)); }
         void  clear();
         float push(float v);
 
@@ -64,6 +66,7 @@ private:
         uint32_t tail   = 0;
         uint64_t count  = 0;
         int      window = 1;
+        int      maxWindow = 1;
     };
 
     // Running-sum moving average (double accumulator).
@@ -87,7 +90,8 @@ private:
     // Parameters (written by the UI thread, read once per block by the audio thread)
     std::atomic<float> driveTarget   { 1.0f };
     std::atomic<float> ceilingTarget { 1.0f };
-    std::atomic<float> releaseMs     { 100.0f };
+    std::atomic<float> releaseMs     { 150.0f };
+    std::atomic<float> holdMs        { 30.0f };
     std::atomic<bool>  truePeak      { false };
 
     // Meters (written by the audio thread)
@@ -101,6 +105,7 @@ private:
     float driveCoef  = 0.0f;          // drive smoothing (one-pole)
     float releaseCoef = 0.0f;
     float appliedReleaseMs = -1.0f;
+    int   holdSamples = 1;
 
     // DSP state
     std::vector<float> delayL, delayR;
@@ -113,6 +118,7 @@ private:
     float tpKernel[TP_PHASES][TP_TAPS] = {};
 
     SlidingMin    slidingMin;
+    SlidingMin    holdMin;      // gain may not rise above the minimum of the last holdMs
     MovingAverage movingAvg;
 
     float releaseGain   = 1.0f;

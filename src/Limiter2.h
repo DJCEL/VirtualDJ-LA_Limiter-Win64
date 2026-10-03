@@ -49,6 +49,7 @@ private:
     static constexpr int   TP_LATENCY  = TP_TAPS / 2;      // samples of look-ahead needed by the FIR
     static constexpr float LATENCY_MS  = 1.25f;            // total latency (audio delay)
     static constexpr int   MIN_LATENCY = 16;               // samples
+    static constexpr float FADE_IN_MS  = 5.0f;             // start-up crossfade dry -> processed
     static constexpr float MIN_LINEAR  = 1.0e-8f;
 
     // O(1) amortized sliding-window minimum (monotonic deque).
@@ -106,6 +107,9 @@ private:
     float releaseCoef = 0.0f;
     float appliedReleaseMs = -1.0f;
     int   holdSamples = 1;
+    int   fadePos = 0;                // start-up crossfade position (samples)
+    int   fadeLen = 1;                // start-up: latency + fade ramp (samples)
+    float invFadeLen = 1.0f;          // 1 / fade ramp length
 
     // DSP state
     std::vector<float> delayL, delayR;

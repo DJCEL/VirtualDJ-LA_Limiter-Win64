@@ -131,14 +131,21 @@ void CLimiter2::buildTruePeakKernel()
 
 void CLimiter2::prepare(int vdjSampleRate)
 {
-    sampleRate = std::max(8000, vdjSampleRate);
+    sampleRate = (std::max)(8000, vdjSampleRate);
 
-    latency = std::max(MIN_LATENCY,
+    latency = (std::max)(MIN_LATENCY,
         static_cast<int>(std::ceil(sampleRate * static_cast<double>(LATENCY_MS) / 1000.0)));
 
     // The true-peak detector already consumes (TP_LATENCY - 1) samples of the latency budget.
     // Guarantee: audio delay = rampLength + TP_LATENCY - 1  (see header).
     rampLength = latency - (TP_LATENCY - 1);
+
+    // Start-up crossfade: the delay line is empty at start, so the first `latency` output samples
+    // would be silence (hard step = click). Fade from the dry input to the processed signal instead.
+    // Dry only during the first `latency` samples, then a linear fade over FADE_IN_MS.
+    const int fadeRamp = (std::max)(1, static_cast<int>(std::ceil(sampleRate * static_cast<double>(FADE_IN_MS) / 1000.0)));
+    fadeLen = latency + fadeRamp;
+    invFadeLen = 1.0f / static_cast<float>(fadeRamp);
 
     delayL.assign(latency, 0.0f);
     delayR.assign(latency, 0.0f);
@@ -168,7 +175,8 @@ void CLimiter2::reset()
     holdMin.clear();
     movingAvg.clear();
 
-    releaseGain   = 1.0f;
+    releaseGain = 1.0f;
+    fadePos = 0;
     driveSmoothed = driveTarget.load(std::memory_order_relaxed);
 
     lastGain.store(1.0f, std::memory_order_relaxed);
@@ -236,8 +244,10 @@ void CLimiter2::process(float* buffer, int frames)
     {
         // 1. Smoothed drive (applied before everything, so the ceiling guarantee holds).
         driveSmoothed += (drive - driveSmoothed) * driveStep;
-        const float inL = buffer[2 * i]     * driveSmoothed;
-        const float inR = buffer[2 * i + 1] * driveSmoothed;
+        const float rawL = buffer[2 * i];
+        const float rawR = buffer[2 * i + 1];
+        const float inL = rawL * driveSmoothed;
+        const float inR = rawR * driveSmoothed;
 
         // 2. Audio delay line (read the oldest sample, then overwrite it).
         const float dL = delayL[delayPos];
@@ -269,7 +279,7 @@ void CLimiter2::process(float* buffer, int frames)
                     yl += hl[t] * k[t];
                     yr += hr[t] * k[t];
                 }
-                peak = (std::max)(peak, std::max(std::fabs(yl), std::fabs(yr)));
+                peak = (std::max)(peak, (std::max)(std::fabs(yl), std::fabs(yr)));
             }
         }
 
@@ -293,8 +303,21 @@ void CLimiter2::process(float* buffer, int frames)
         g = movingAvg.push(releaseGain);
 
         // 9. Apply + last-resort safety clamp (float rounding, ceiling changes).
-        const float outL = std::clamp(dL * g, -ceiling, ceiling);
-        const float outR = std::clamp(dR * g, -ceiling, ceiling);
+        float outL = dL * g;
+        float outR = dR * g;
+
+        // 9b. Start-up crossfade dry -> processed (removes the click when the plugin is activated).
+        if (fadePos < fadeLen)
+        {
+            const int   k = fadePos - latency;   // <= 0 while the delay line is still filling
+            const float a = (k > 0) ? static_cast<float>(k) * invFadeLen : 0.0f;
+            outL = rawL + (outL - rawL) * a;
+            outR = rawR + (outR - rawR) * a;
+            ++fadePos;
+        }
+
+        outL = std::clamp(outL, -ceiling, ceiling);
+        outR = std::clamp(outR, -ceiling, ceiling);
         buffer[2 * i]     = outL;
         buffer[2 * i + 1] = outR;
 

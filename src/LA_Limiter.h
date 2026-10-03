@@ -2,6 +2,7 @@
 
 #include "vdjDsp8.h"
 #include "Limiter1.h"
+#include "Limiter2.h"
 #include <cstdio>
 #include <cstring>
 
@@ -39,5 +40,6 @@ class CLA_Limiter : public IVdjPluginDsp8
         float output_db;
         int m_isOn;
         int nbOn;
-        Limiter limiter;
+        //CLimiter1 limiter;
+        CLimiter2 limiter;
 };

@@ -5,11 +5,11 @@
 #include <algorithm>
 #include <cstdint>
 
-class Limiter
+class CLimiter1
 {
 public:
-    Limiter();
-    ~Limiter();
+    CLimiter1();
+    ~CLimiter1();
     void prepare(int vdjsampleRate);
     void reset();
     void setThreshold(float db);

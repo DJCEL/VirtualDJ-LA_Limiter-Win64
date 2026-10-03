@@ -74,6 +74,7 @@
       <PrecompiledHeaderOutputFile />
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <OutputFile>$(LOCALAPPDATA)\VirtualDJ\Plugins64\SoundEffect\Dev\$(TargetName)$(TargetExt)</OutputFile>
@@ -99,6 +100,7 @@
       <PrecompiledHeaderOutputFile />
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <OutputFile>$(LOCALAPPDATA)\VirtualDJ\Plugins64\SoundEffect\VDJ8\$(TargetName)$(TargetExt)</OutputFile>
@@ -113,13 +115,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\Limiter.cpp" />
+    <ClCompile Include="..\src\Limiter1.cpp" />
     <ClCompile Include="..\src\LA_Limiter.cpp" />
+    <ClCompile Include="..\src\Limiter2.cpp" />
     <ClCompile Include="..\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\Limiter.h" />
+    <ClInclude Include="..\src\Limiter1.h" />
     <ClInclude Include="..\src\LA_Limiter.h" />
+    <ClInclude Include="..\src\Limiter2.h" />
     <ClInclude Include="..\src\vdjDsp8.h" />
     <ClInclude Include="..\src\vdjPlugin8.h" />
     <ClInclude Include="..\src\resource.h" />

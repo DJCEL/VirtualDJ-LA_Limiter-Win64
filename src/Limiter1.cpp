@@ -2,7 +2,7 @@
 
 
 //----------------------------------------------------------------------------
-Limiter::Limiter()
+CLimiter1::CLimiter1()
 {
     sampleRate = 0;
     thresholdDb = 0.0f;
@@ -19,12 +19,12 @@ Limiter::Limiter()
     isOn = 0;
 }
 //----------------------------------------------------------------------------
-Limiter::~Limiter()
+CLimiter1::~CLimiter1()
 {
 
 }
 //----------------------------------------------------------------------------
-void Limiter::prepare(int vdjsampleRate)
+void CLimiter1::prepare(int vdjsampleRate)
 {
     // look-ahead. Examples: 44100 Hz = 55.125 -> 56 / 48000 Hz = 60 / 96000 Hz = 120
     sampleRate = vdjsampleRate;
@@ -36,7 +36,7 @@ void Limiter::prepare(int vdjsampleRate)
 
 }
 //----------------------------------------------------------------------------
-void Limiter::resizeBuffers()
+void CLimiter1::resizeBuffers()
 {
     // A few extra samples are useful for ring-buffer indexing and future TruePeak implementation.
     const int size = lookAheadSamples + 16;
@@ -45,7 +45,7 @@ void Limiter::resizeBuffers()
     delayWrite = 0;
 }
 //----------------------------------------------------------------------------
-void Limiter::reset()
+void CLimiter1::reset()
 {
     std::fill(delayL.begin(),delayL.end(),0.0f);
     std::fill(delayR.begin(),delayR.end(),0.0f);
@@ -56,19 +56,19 @@ void Limiter::reset()
     previousR = 0.0f;
 }
 //----------------------------------------------------------------------------
-void Limiter::setThreshold(float db)
+void CLimiter1::setThreshold(float db)
 {
     thresholdDb = clamp(db, -30.0f, 0.0f);
     thresholdLinear = dbToLinear(thresholdDb);
 }
 //----------------------------------------------------------------------------
-void Limiter::setOutput(float db)
+void CLimiter1::setOutput(float db)
 {
     outputDb = clamp(db, -30.0f, 0.0f);
     ceilingLinear = dbToLinear(outputDb);
 }
 //----------------------------------------------------------------------------
-void Limiter::setTruePeak(bool enabled)
+void CLimiter1::setTruePeak(bool enabled)
 {
     if (is_TruePeak == enabled)
         return;
@@ -79,13 +79,13 @@ void Limiter::setTruePeak(bool enabled)
     reset();
 }
 //----------------------------------------------------------------------------
-float Limiter::getPeak(float left, float right)
+float CLimiter1::getPeak(float left, float right)
 {
 	float peak = std::max(std::fabs(left), std::fabs(right));
     return peak;
 }
 //----------------------------------------------------------------------------
-float Limiter::detectTruePeak(float left, float right)
+float CLimiter1::detectTruePeak(float left, float right)
 {
     // Simple 4x inter-sample detector. We inspect four points between the previous and current samples.
     float peak = getPeak(left, right);
@@ -107,7 +107,7 @@ float Limiter::detectTruePeak(float left, float right)
     return peak;
 }
 //----------------------------------------------------------------------------
-float Limiter::updateEnvelope(float peak)
+float CLimiter1::updateEnvelope(float peak)
 {
 	float coefficient = 0.0f;
 
@@ -129,7 +129,7 @@ float Limiter::updateEnvelope(float peak)
     return envelope;
 }
 //----------------------------------------------------------------------------
-float Limiter::releaseCoefficient(float levelDb)
+float CLimiter1::releaseCoefficient(float levelDb)
 {
     // Approximate program-dependent release. -60 dB -> ~20 ms / 0 dB -> ~250 ms
     // This is intentionally smooth rather than using discrete release times.
@@ -140,12 +140,12 @@ float Limiter::releaseCoefficient(float levelDb)
     return releaseCoeff;
 }
 //----------------------------------------------------------------------------
-float Limiter::calculateTargetGain(float peak)
+float CLimiter1::calculateTargetGain(float peak)
 {
     if (peak <= MIN_GAIN)
         return 1.0f;
 
-    // The maximizer concept: threshold controls how hard we drive the limiter.
+    // The maximizer concept: threshold controls how hard we drive the CLimiter1.
     // At threshold <= peak, gain reduction is required.
     // At peak below threshold, we can apply makeup gain, but NEVER above the output ceiling.
     const float thresholdGain = thresholdLinear / peak;
@@ -165,7 +165,7 @@ float Limiter::calculateTargetGain(float peak)
     return TargetGain;
 }
 //----------------------------------------------------------------------------
-float Limiter::smoothGain(float target, float envelope)
+float CLimiter1::smoothGain(float target, float envelope)
 {
     // Gain reduction = fast.
     // Gain recovery = program-dependent.
@@ -196,7 +196,7 @@ float Limiter::smoothGain(float target, float envelope)
     return gain;
 }
 //----------------------------------------------------------------------------
-void Limiter::process(float* buffer, int frames)
+void CLimiter1::process(float* buffer, int frames)
 {
     if (!buffer || frames <= 0)
         return;
@@ -271,7 +271,7 @@ void Limiter::process(float* buffer, int frames)
     }
 }
 //----------------------------------------------------------------------------
-float Limiter::getGainReductionDb()
+float CLimiter1::getGainReductionDb()
 {
     if (gain <= MIN_GAIN)
         return MIN_GAIN_DB;
@@ -280,7 +280,7 @@ float Limiter::getGainReductionDb()
     return gainReductionDb;
 }
 //----------------------------------------------------------------------------
-int Limiter::getLatencySamples()
+int CLimiter1::getLatencySamples()
 {
     int latencySamples = 0;
     if (is_TruePeak)
@@ -294,25 +294,25 @@ int Limiter::getLatencySamples()
     return latencySamples;
 }
 //----------------------------------------------------------------------------
-float Limiter::dbToLinear(float db)
+float CLimiter1::dbToLinear(float db)
 {
     float linear = std::pow(10.0f, db / 20.0f);
     return linear;
 }
 //----------------------------------------------------------------------------
-float Limiter::linearToDb(float linear)
+float CLimiter1::linearToDb(float linear)
 {
     float db = 20.0f * std::log10(std::max(linear, MIN_GAIN));
     return db;
 }
 //----------------------------------------------------------------------------
-float Limiter::clamp(float value, float min, float max)
+float CLimiter1::clamp(float value, float min, float max)
 {
     float clampValue = std::max(min, std::min(value, max));
     return clampValue;
 }
 //----------------------------------------------------------------------------
-int Limiter::isActive()
+int CLimiter1::isActive()
 {
     return isOn;
 }

@@ -92,7 +92,7 @@ CLimiter2::CLimiter2()
 //----------------------------------------------------------------------------
 // 4x oversampling: 3 interpolation phases (1/4, 2/4, 3/4), 12 taps each,
 // Kaiser-windowed sinc, normalized to unity DC gain.
-// Same structure as the ITU-R BS.1770 true-peak interpolator (4x, 48 taps total);
+// Similar to a structure as the ITU-R BS.1770 true-peak interpolator (4x, 48 taps total);
 //----------------------------------------------------------------------------
 void CLimiter2::buildTruePeakKernel()
 {

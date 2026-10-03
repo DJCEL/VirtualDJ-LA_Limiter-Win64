@@ -85,7 +85,7 @@ void CLA_Limiter::OnSlider(int id)
             break;
         case ID_SLIDER_4:
             holdMs = SliderValue[3] * 100.0f;
-            limiter.setReleaseMs(holdMs);
+            limiter.setHoldMs(holdMs);
             break;
     }
 }

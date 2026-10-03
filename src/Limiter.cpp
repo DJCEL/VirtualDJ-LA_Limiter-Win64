@@ -85,7 +85,8 @@ float Limiter::getPeak(float left, float right)
 //----------------------------------------------------------------------------
 float Limiter::detectTruePeak(float left, float right)
 {
-    // 4x inter-sample detector. We inspect four points between the previous and current samples.
+    // Simple 4x inter-sample detector. We inspect four points between the previous and current samples.
+    // TODO: Il faut un suéchantillonage 4x par filtre FIR polyphasé (type ITU-R BS.1770)
     float peak = getPeak(left, right);
 	float peak_new = 0.0f;
 	float t = 0.0f;
@@ -212,7 +213,6 @@ void Limiter::process(float* buffer, int frames)
 	float outputL = 0.0f;
 	float outputR = 0.0f;
     float outputPeak = 0.0f;
-    float safety = 0.0f;
 
     isOn = 0;
 

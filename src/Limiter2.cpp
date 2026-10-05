@@ -257,11 +257,13 @@ void CLimiter2::process(float* buffer, int frames)
     const float driveStep = 1.0f - driveCoef;
     int   active = 0;
     float g = 1.0f;
+    float rawL = 0.0f;
+    float rawR = 0.0f;
 
     for (int i = 0; i < frames; ++i)
     {
-        const float rawL = buffer[2 * i];
-        const float rawR = buffer[2 * i + 1];
+        rawL = buffer[2 * i];
+        rawR = buffer[2 * i + 1];
 
         // 1. Smoothed drive (applied before everything, so the ceiling guarantee holds).
         driveSmoothed += (drive - driveSmoothed) * driveStep;

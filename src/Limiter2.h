@@ -50,6 +50,7 @@ private:
     static constexpr float LATENCY_MS  = 1.25f;            // total latency (audio delay)
     static constexpr int   MIN_LATENCY = 16;               // samples
     static constexpr float FADE_IN_MS  = 5.0f;             // start-up crossfade dry -> processed
+    static constexpr float FADE_OUT_MS = 5.0f;  // fade-out duration (same as fade-in for consistency)
     static constexpr float MIN_LINEAR  = 1.0e-8f;
 
     // O(1) amortized sliding-window minimum (monotonic deque).

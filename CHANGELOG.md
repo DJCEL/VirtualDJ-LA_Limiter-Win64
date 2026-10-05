@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.3 (2026-10-05)
+- fix finished for the sound in OnStop()
+- add of new option "Final Security" (hard limiter between -1.0f and 1.0f at the end of the sound processing)
+
 ## 2.0.2 (2026-10-03)
 - working on a fix for the sound in OnStop()
 

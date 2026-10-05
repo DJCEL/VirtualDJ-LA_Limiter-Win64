@@ -192,11 +192,10 @@ void CLimiter2::start(int vdjSampleRate)
 //----------------------------------------------------------------------------
 void CLimiter2::stop()
 {
-  // TODO: Gradual fade-out instead of immediate reset ie gradually set gain to 0.
+  // Gradual fade-out instead of immediate reset ie gradually set gain to 0.
   fadeOutLen = (std::max)(1, static_cast<int>(std::ceil(sampleRate * static_cast<double>(FADE_OUT_MS) / 1000.0)));
   fadeOutPos = 0;
   isFadingOut = true;
-  reset();
 }
 //----------------------------------------------------------------------------
 void CLimiter2::setThreshold(float db)

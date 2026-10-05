@@ -77,19 +77,19 @@ void CLA_Limiter::OnSlider(int id)
     {
 	    case ID_SLIDER_1:
             threshold_db = -30.0f * SliderValue[0];
-            limiter.setThreshold(threshold_db);
+            limiter.setThreshold(threshold_db, -30.0f, 0.0f);
 		    break;
 	    case ID_SLIDER_2:
             output_db = -30.0f * SliderValue[1];
-            limiter.setOutput(output_db);
+            limiter.setOutput(output_db, -30.0f, 0.0f);
 		    break;
         case ID_SLIDER_3:
             releaseMs = 5.0f + SliderValue[2] * (1000.0f - 5.0f);
-			limiter.setReleaseMs(releaseMs);
+			limiter.setReleaseMs(releaseMs, 5.0f, 1000.0f);
             break;
         case ID_SLIDER_4:
             holdMs = SliderValue[3] * 100.0f;
-            limiter.setHoldMs(holdMs);
+            limiter.setHoldMs(holdMs, 0.0f, 100.0f);
             break;
     }
 }

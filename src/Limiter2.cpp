@@ -199,16 +199,16 @@ void CLimiter2::stop()
   isFadingOut = true;
 }
 //----------------------------------------------------------------------------
-void CLimiter2::setThreshold(float db)
+void CLimiter2::setThreshold(float db, float minDb, float maxDb)
 {
     // Maximizer: lowering the threshold drives the signal harder into the ceiling.
-    const float t = std::clamp(db, -30.0f, 0.0f);
+    const float t = std::clamp(db, minDb, maxDb);
     driveTarget.store(dbToLinear(-t), std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
-void CLimiter2::setOutput(float db)
+void CLimiter2::setOutput(float db, float minDb, float maxDb)
 {
-    const float c = std::clamp(db, -30.0f, 0.0f);
+    const float c = std::clamp(db, minDb, maxDb);
     ceilingTarget.store(dbToLinear(c), std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
@@ -218,14 +218,14 @@ void CLimiter2::setTruePeak(bool enabled)
     truePeak.store(enabled, std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
-void CLimiter2::setReleaseMs(float ms)
+void CLimiter2::setReleaseMs(float ms,float minMs,float maxMs)
 {
-    releaseMs.store(std::clamp(ms, 5.0f, 1000.0f), std::memory_order_relaxed);
+    releaseMs.store(std::clamp(ms, minMs, maxMs), std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
-void CLimiter2::setHoldMs(float ms)
+void CLimiter2::setHoldMs(float ms, float minMs, float maxMs)
 {
-    holdMs.store(std::clamp(ms, 0.0f, 100.0f), std::memory_order_relaxed);
+    holdMs.store(std::clamp(ms, minMs, maxMs), std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
 void CLimiter2::setFinalSecurity(bool enabled)

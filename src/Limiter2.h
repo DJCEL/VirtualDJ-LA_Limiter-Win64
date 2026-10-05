@@ -29,11 +29,11 @@ public:
     void process(float* buffer, int frames);  // Audio thread. buffer = interleaved stereo, frames = number of stereo frames.
 
     // Thread-safe (can be called from the UI thread while process() runs).
-    void setThreshold(float db);   // -30..0 dB : drive (input gain = -threshold), maximizer style
-    void setOutput(float db);      // -30..0 dB : output ceiling
+    void setThreshold(float db, float minDb, float maxDb);   // -30..0 dB : drive (input gain = -threshold), maximizer style
+    void setOutput(float db, float minDb, float maxDb);      // -30..0 dB : output ceiling
     void setTruePeak(bool enabled);
-    void setReleaseMs(float ms);   // 5..1000 ms, default 150
-    void setHoldMs(float ms);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
+    void setReleaseMs(float ms, float minMs, float maxMs);   // 5..1000 ms, default 150
+    void setHoldMs(float ms, float minMs, float maxMs);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
     void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
 
     float getGainReductionDb() const;                    // last gain of the last block (<= 0 dB)

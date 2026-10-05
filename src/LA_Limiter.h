@@ -28,7 +28,8 @@ class CLA_Limiter : public IVdjPluginDsp8
             ID_SLIDER_3,
             ID_SLIDER_4,
             ID_SWITCH_1,
-            ID_SWITCH_2
+            ID_SWITCH_2,
+            ID_SWITCH_3
         } ID_Interface;
 
         void OnSlider(int id);
@@ -36,6 +37,7 @@ class CLA_Limiter : public IVdjPluginDsp8
 
         float SliderValue[4];
         int is_TruePeak;
+        int is_FinalSecurity;
         float threshold_db;  
         float output_db;
         float releaseMs;

@@ -128,8 +128,7 @@ void CLimiter2::prepare(int vdjSampleRate)
 {
     sampleRate = (std::max)(8000, vdjSampleRate);
 
-    latency = (std::max)(MIN_LATENCY,
-        static_cast<int>(std::ceil(sampleRate * static_cast<double>(LATENCY_MS) / 1000.0)));
+    latency = (std::max)(MIN_LATENCY, static_cast<int>(std::ceil(sampleRate * static_cast<double>(LATENCY_MS) / 1000.0)));
 
     // The true-peak detector already consumes (TP_LATENCY - 1) samples of the latency budget.
     // Guarantee: audio delay = rampLength + TP_LATENCY - 1  (see header).
@@ -157,6 +156,7 @@ void CLimiter2::prepare(int vdjSampleRate)
     appliedReleaseMs = -1.0f;                                              // force recompute
 
     driveSmoothed = driveTarget.load(std::memory_order_relaxed);
+
     reset();
 }
 //----------------------------------------------------------------------------
@@ -228,6 +228,11 @@ void CLimiter2::setHoldMs(float ms)
     holdMs.store(std::clamp(ms, 0.0f, 100.0f), std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
+void CLimiter2::setFinalSecurity(bool enabled)
+{
+    finalSecurity.store(enabled, std::memory_order_relaxed);
+}
+//----------------------------------------------------------------------------
 void CLimiter2::process(float* buffer, int frames)
 {
     if (!buffer || frames <= 0 || delayL.empty())
@@ -238,6 +243,7 @@ void CLimiter2::process(float* buffer, int frames)
     const float drive   = driveTarget.load(std::memory_order_relaxed);
     const bool  useTP   = truePeak.load(std::memory_order_relaxed);
     const float relMs   = releaseMs.load(std::memory_order_relaxed);
+    const bool security = finalSecurity.load(std::memory_order_relaxed);
 
     if (relMs != appliedReleaseMs)
     {
@@ -340,14 +346,19 @@ void CLimiter2::process(float* buffer, int frames)
                 isFadingOut = false;
                 reset();  // Clean reset after fade completes
             }
-         }
+        }
 
-         outL = std::clamp(outL, -ceiling, ceiling);
-         outR = std::clamp(outR, -ceiling, ceiling);
-         buffer[2 * i]     = outL;
-         buffer[2 * i + 1] = outR;
+        // 9d. We clamp between -1.0f and 1.0f (last security)
+        if (security)
+        {
+            outL = std::clamp(outL, -ceiling, ceiling);
+            outR = std::clamp(outR, -ceiling, ceiling);
+        }
+         
+        buffer[2 * i]     = outL;
+        buffer[2 * i + 1] = outR;
 
-         if (g < 0.999f)
+        if (g < 0.999f)
              ++active;
     }
 
@@ -355,8 +366,23 @@ void CLimiter2::process(float* buffer, int frames)
     activeFrames.store(active, std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
+float CLimiter2::dbToLinear(float db) 
+{ 
+    return std::pow(10.0f, db / 20.0f); 
+}
+//----------------------------------------------------------------------------
 float CLimiter2::getGainReductionDb() const
 {
     const float gain = (std::max)(lastGain.load(std::memory_order_relaxed), MIN_LINEAR);
     return 20.0f * std::log10(gain);
+}
+//----------------------------------------------------------------------------
+int CLimiter2::getLatencySamples() const 
+{ 
+    return latency; 
+}
+//----------------------------------------------------------------------------
+int CLimiter2::isActive() const 
+{ 
+    return activeFrames.load(std::memory_order_relaxed); 
 }

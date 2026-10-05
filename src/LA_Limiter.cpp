@@ -4,12 +4,14 @@
 CLA_Limiter::CLA_Limiter()
 {
     is_TruePeak = 0;
+    is_FinalSecurity = 0;
     threshold_db = 0.0f;
     output_db = 0.0f;
     releaseMs = 0.0f;
     holdMs = 0.0f;
     m_isOn = 0;
     nbOn = 0;
+    memset(SliderValue, 0, sizeof 4 * sizeof(float));
 }
 //----------------------------------------------------------------------------
 CLA_Limiter::~CLA_Limiter()
@@ -24,7 +26,8 @@ HRESULT VDJ_API CLA_Limiter::OnLoad()
     DeclareParameterSlider(&SliderValue[2], ID_SLIDER_3, "releaseMs", "REL", 0.146f);
     DeclareParameterSlider(&SliderValue[3], ID_SLIDER_4, "holdMs", "HOL", 0.3f);
     DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_1,"True Peak","ISP",false);
-    DeclareParameterSwitch(&m_isOn, ID_SWITCH_2, "O", "O", false);
+    DeclareParameterSwitch(&is_FinalSecurity, ID_SWITCH_2, "Final Security", "SEC", false);
+    DeclareParameterSwitch(&m_isOn, ID_SWITCH_3, "O", "O", false);
 
     OnParameter(ID_INIT);
     return S_OK;
@@ -35,7 +38,7 @@ HRESULT VDJ_API CLA_Limiter::OnGetPluginInfo(TVdjPluginInfo8* infos)
     infos->PluginName = "LA_Limiter";
     infos->Author = "DJ CEL";
     infos->Description = "Look-ahead stereo limiter";
-    infos->Version = "2.0.2";
+    infos->Version = "2.0.3";
     infos->Flags = 0x00;
     infos->Bitmap = NULL;
     return S_OK;
@@ -57,6 +60,7 @@ HRESULT VDJ_API CLA_Limiter::OnParameter(int id)
         OnSlider(ID_SLIDER_3);
         OnSlider(ID_SLIDER_4);
         OnButton(ID_SWITCH_1);
+        OnButton(ID_SWITCH_2);
     }
     else
     {
@@ -97,6 +101,9 @@ void CLA_Limiter::OnButton(int id)
 	    case ID_SWITCH_1:
             limiter.setTruePeak(is_TruePeak != 0);
 		    break;
+        case ID_SWITCH_2:
+            limiter.setFinalSecurity(is_FinalSecurity != 0);
+            break;
 	}
 }
 //----------------------------------------------------------------------------

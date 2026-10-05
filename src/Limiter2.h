@@ -24,10 +24,9 @@ class CLimiter2
 {
 public:
     CLimiter2();
-
-    // Allocates. Call from OnStart(), never concurrently with process().
-    void start(int vdjSampleRate);
+    void start(int vdjSampleRate); // Allocates. Call from OnStart(), never concurrently with process().
     void stop();
+    void process(float* buffer, int frames);  // Audio thread. buffer = interleaved stereo, frames = number of stereo frames.
 
     // Thread-safe (can be called from the UI thread while process() runs).
     void setThreshold(float db);   // -30..0 dB : drive (input gain = -threshold), maximizer style
@@ -35,13 +34,11 @@ public:
     void setTruePeak(bool enabled);
     void setReleaseMs(float ms);   // 5..1000 ms, default 150
     void setHoldMs(float ms);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
-
-    // Audio thread. buffer = interleaved stereo, frames = number of stereo frames.
-    void process(float* buffer, int frames);
+    void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
 
     float getGainReductionDb() const;                    // last gain of the last block (<= 0 dB)
-    int   getLatencySamples() const { return latency; }
-    int   isActive() const { return activeFrames.load(std::memory_order_relaxed); }
+    int getLatencySamples() const;
+    int isActive() const;
 
 private:
     static constexpr int   TP_TAPS     = 12;               // taps per phase
@@ -88,8 +85,7 @@ private:
     void prepare(int sampleRate);
     void reset();
     void buildTruePeakKernel();
-
-    static float dbToLinear(float db) { return std::pow(10.0f, db / 20.0f); }
+    float dbToLinear(float db);
 
     // Parameters (written by the UI thread, read once per block by the audio thread)
     std::atomic<float> driveTarget   { 1.0f };
@@ -97,6 +93,7 @@ private:
     std::atomic<float> releaseMs     { 150.0f };
     std::atomic<float> holdMs        { 30.0f };
     std::atomic<bool>  truePeak      { false };
+    std::atomic<bool>  finalSecurity { false };
 
     // Meters (written by the audio thread)
     std::atomic<float> lastGain      { 1.0f };

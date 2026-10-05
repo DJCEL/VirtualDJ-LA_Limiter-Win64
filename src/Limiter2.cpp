@@ -178,6 +178,12 @@ void CLimiter2::reset()
     activeFrames.store(0, std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
+void CLimiter2::fadeOut()
+{
+  // TODO: Gradual fade-out instead of immediate reset
+  reset();
+}
+//----------------------------------------------------------------------------
 void CLimiter2::setThreshold(float db)
 {
     // Maximizer: lowering the threshold drives the signal harder into the ceiling.

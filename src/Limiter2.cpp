@@ -309,6 +309,7 @@ void CLimiter2::process(float* buffer, int frames)
         peak = (std::max)(std::fabs(hl[TP_LATENCY - 1]), std::fabs(hr[TP_LATENCY - 1]));
         if (useTP)
         {
+			// TODO: Can we improve the efficiency of this?
             for (int p = 0; p < TP_PHASES; ++p)
             {
                 const float* k = tpKernel[p];

@@ -136,8 +136,7 @@ HRESULT VDJ_API CLA_Limiter::OnStart()
 HRESULT VDJ_API CLA_Limiter::OnStop()
 {
 
-    limiter.fadeOut();  // Gradual fade-out instead of immediate reset
-    //limiter.reset();
+    limiter.fadeOut();
     m_isOn = 0;
     return S_OK;
 }

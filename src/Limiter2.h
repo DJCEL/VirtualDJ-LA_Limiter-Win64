@@ -131,24 +131,4 @@ private:
 
     float releaseGain   = 1.0f;
     float driveSmoothed = 1.0f;
-    float driveStep = 0.0f;
-    int   active = 0;
-    float g = 1.0f;
-    float rawL = 0.0f;
-    float rawR = 0.0f;
-    float inL = 0.0f;
-    float inR = 0.0f;
-    float dL = 0.0f;
-    float dR = 0.0f;
-    float peak = 0.0f;
-    float fadeOutGain = 0.0f;
-    int k = 0;
-    float a = 0.0f;
-    float outL = 0.0f;
-    float outR = 0.0f;
-    float hm = 0.0f;
-    float m = 0.0f;
-    float required = 0.0f;
-    float yl = 0.0f;
-    float yr = 0.0f;
 };

@@ -238,28 +238,6 @@ void CLimiter2::process(float* buffer, int frames)
     if (!buffer || frames <= 0 || delayL.empty())
         return;
 
-    active = 0;
-
-    driveStep = 0.0f;
-    g = 1.0f;
-    rawL = 0.0f;
-    rawR = 0.0f;
-    inL = 0.0f;
-    inR = 0.0f;
-    dL = 0.0f;
-    dR = 0.0f;
-    peak = 0.0f;
-    fadeOutGain = 0.0f;
-    k = 0;
-    a = 0.0f;
-    outL = 0.0f;
-    outR = 0.0f;
-    hm = 0.0f;
-    m = 0.0f;
-    required = 0.0f;
-    yl = 0.0f;
-    yr = 0.0f;
-
     // Block-rate parameter snapshot.
     const float ceiling = ceilingTarget.load(std::memory_order_relaxed);
     const float drive   = driveTarget.load(std::memory_order_relaxed);
@@ -276,21 +254,23 @@ void CLimiter2::process(float* buffer, int frames)
     holdSamples = (std::max)(1, static_cast<int>(holdMs.load(std::memory_order_relaxed) * 0.001f * sampleRate));
     holdMin.setWindow(holdSamples);
 
-    driveStep = 1.0f - driveCoef;
+    const float driveStep = 1.0f - driveCoef;
+    int   active = 0;
+    float g = 1.0f;   // gain of the last sample (published after the loop)
 
     for (int i = 0; i < frames; ++i)
     {
-        rawL = buffer[2 * i];
-        rawR = buffer[2 * i + 1];
+        const float rawL = buffer[2 * i];
+        const float rawR = buffer[2 * i + 1];
 
         // 1. Smoothed drive (applied before everything, so the ceiling guarantee holds).
         driveSmoothed += (drive - driveSmoothed) * driveStep;
-        inL = rawL * driveSmoothed;
-        inR = rawR * driveSmoothed;
+        const float inL = rawL * driveSmoothed;
+        const float inR = rawR * driveSmoothed;
 
         // 2. Audio delay line (read the oldest sample, then overwrite it).
-        dL = delayL[delayPos];
-        dR = delayR[delayPos];
+        const float dL = delayL[delayPos];
+        const float dR = delayR[delayPos];
         delayL[delayPos] = inL;
         delayR[delayPos] = inR;
         if (++delayPos >= latency)
@@ -306,35 +286,34 @@ void CLimiter2::process(float* buffer, int frames)
 
         // 4. Peak of the centre sample c = n - (TP_LATENCY-1) and, if enabled,
         //    of the 3 interpolated points between c and c+1 (stereo linked).
-        peak = (std::max)(std::fabs(hl[TP_LATENCY - 1]), std::fabs(hr[TP_LATENCY - 1]));
+        float peak = (std::max)(std::fabs(hl[TP_LATENCY - 1]), std::fabs(hr[TP_LATENCY - 1]));
         if (useTP)
         {
-			// TODO: Can we improve the efficiency of this?
             for (int p = 0; p < TP_PHASES; ++p)
             {
-                const float* k = tpKernel[p];
-                yl = 0.0f;
-                yr = 0.0f;
+                const float* kern = tpKernel[p];
+                float yl = 0.0f;
+                float yr = 0.0f;
                 for (int t = 0; t < TP_TAPS; ++t)
                 {
-                    yl += hl[t] * k[t];
-                    yr += hr[t] * k[t];
+                    yl += hl[t] * kern[t];
+                    yr += hr[t] * kern[t];
                 }
                 peak = (std::max)(peak, (std::max)(std::fabs(yl), std::fabs(yr)));
             }
         }
 
         // 5. Instantaneous required gain (no smoothing on the detector!).
-        required = (peak > ceiling) ? (ceiling / peak) : 1.0f;
+        const float required = (peak > ceiling) ? (ceiling / peak) : 1.0f;
 
         // 6. Sliding minimum over the ramp window.
-        m = slidingMin.push(required);
+        const float m = slidingMin.push(required);
 
         // 7. Hold + release stage. The gain may not rise above the minimum of the last holdMs
         //    (keeps the gain constant between the crests of a bass waveform -> no ripple),
         //    then recovers with a one-pole release. Attack is instant here (the moving
         //    average below makes the ramp). Always releaseGain <= holdMin <= m.
-        hm = holdMin.push(m);
+        const float hm = holdMin.push(m);
         if (hm < releaseGain)
             releaseGain = hm;
         else
@@ -344,14 +323,14 @@ void CLimiter2::process(float* buffer, int frames)
         g = movingAvg.push(releaseGain);
 
         // 9. Apply + last-resort safety clamp (float rounding, ceiling changes).
-        outL = dL * g;
-        outR = dR * g;
+        float outL = dL * g;
+        float outR = dR * g;
 
         // 9b. Start-up crossfade dry -> processed (removes the click when the plugin is activated).
         if (fadePos < fadeLen)
         {
-            k = fadePos - latency;   // <= 0 while the delay line is still filling
-            a = (k > 0) ? static_cast<float>(k) * invFadeLen : 0.0f;
+            const int   k = fadePos - latency;   // <= 0 while the delay line is still filling
+            const float a = (k > 0) ? static_cast<float>(k) * invFadeLen : 0.0f;
             outL = rawL + (outL - rawL) * a;
             outR = rawR + (outR - rawR) * a;
             ++fadePos;
@@ -360,7 +339,7 @@ void CLimiter2::process(float* buffer, int frames)
         // 9c. Fade-out crossfade (removes the click when the plugin is stopped).
         if (isFadingOut)
         {
-            fadeOutGain = 1.0f - (static_cast<float>(fadeOutPos) * invFadeOutLen);
+            const float fadeOutGain = 1.0f - (static_cast<float>(fadeOutPos) * invFadeOutLen);
             outL *= fadeOutGain;
             outR *= fadeOutGain;
     

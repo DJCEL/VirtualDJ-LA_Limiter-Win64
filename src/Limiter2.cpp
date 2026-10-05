@@ -342,13 +342,13 @@ void CLimiter2::process(float* buffer, int frames)
             }
          }
 
-     outL = std::clamp(outL, -ceiling, ceiling);
-     outR = std::clamp(outR, -ceiling, ceiling);
-      buffer[2 * i]     = outL;
-      buffer[2 * i + 1] = outR;
+         outL = std::clamp(outL, -ceiling, ceiling);
+         outR = std::clamp(outR, -ceiling, ceiling);
+         buffer[2 * i]     = outL;
+         buffer[2 * i + 1] = outR;
 
-      if (g < 0.999f)
-          ++active;
+         if (g < 0.999f)
+             ++active;
     }
 
     lastGain.store(g, std::memory_order_relaxed);

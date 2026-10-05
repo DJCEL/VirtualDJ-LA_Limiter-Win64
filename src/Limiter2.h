@@ -26,8 +26,6 @@ public:
     CLimiter2();
 
     // Allocates. Call from OnStart(), never concurrently with process().
-    void prepare(int sampleRate);
-    void reset();
     void start(int vdjSampleRate);
     void stop();
 
@@ -86,6 +84,8 @@ private:
         int    length = 1;
     };
 
+    void prepare(int sampleRate);
+    void reset();
     void buildTruePeakKernel();
 
     static float dbToLinear(float db) { return std::pow(10.0f, db / 20.0f); }

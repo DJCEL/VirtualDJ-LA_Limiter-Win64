@@ -259,6 +259,21 @@ void CLimiter2::process(float* buffer, int frames)
     float g = 1.0f;
     float rawL = 0.0f;
     float rawR = 0.0f;
+	float inL = 0.0f;
+	float inR = 0.0f;
+	float dL = 0.0f;
+	float dR = 0.0f;
+    float peak = 0.0f;
+    float fadeOutGain = 0.0f;
+    int k = 0;
+    float a = 0.0f;
+	float outL = 0.0f;
+	float outR = 0.0f;
+    float hm = 0.0f;
+    float m = 0.0f;
+    float required = 0.0f;
+    float yl = 0.0f;
+    float yr = 0.0f;
 
     for (int i = 0; i < frames; ++i)
     {
@@ -267,12 +282,12 @@ void CLimiter2::process(float* buffer, int frames)
 
         // 1. Smoothed drive (applied before everything, so the ceiling guarantee holds).
         driveSmoothed += (drive - driveSmoothed) * driveStep;
-        const float inL = rawL * driveSmoothed;
-        const float inR = rawR * driveSmoothed;
+        inL = rawL * driveSmoothed;
+        inR = rawR * driveSmoothed;
 
         // 2. Audio delay line (read the oldest sample, then overwrite it).
-        const float dL = delayL[delayPos];
-        const float dR = delayR[delayPos];
+        dL = delayL[delayPos];
+        dR = delayR[delayPos];
         delayL[delayPos] = inL;
         delayR[delayPos] = inR;
         if (++delayPos >= latency)
@@ -288,13 +303,14 @@ void CLimiter2::process(float* buffer, int frames)
 
         // 4. Peak of the centre sample c = n - (TP_LATENCY-1) and, if enabled,
         //    of the 3 interpolated points between c and c+1 (stereo linked).
-        float peak = (std::max)(std::fabs(hl[TP_LATENCY - 1]), std::fabs(hr[TP_LATENCY - 1]));
+        peak = (std::max)(std::fabs(hl[TP_LATENCY - 1]), std::fabs(hr[TP_LATENCY - 1]));
         if (useTP)
         {
             for (int p = 0; p < TP_PHASES; ++p)
             {
                 const float* k = tpKernel[p];
-                float yl = 0.0f, yr = 0.0f;
+                yl = 0.0f;
+                yr = 0.0f;
                 for (int t = 0; t < TP_TAPS; ++t)
                 {
                     yl += hl[t] * k[t];
@@ -305,16 +321,16 @@ void CLimiter2::process(float* buffer, int frames)
         }
 
         // 5. Instantaneous required gain (no smoothing on the detector!).
-        const float required = (peak > ceiling) ? (ceiling / peak) : 1.0f;
+        required = (peak > ceiling) ? (ceiling / peak) : 1.0f;
 
         // 6. Sliding minimum over the ramp window.
-        const float m = slidingMin.push(required);
+        m = slidingMin.push(required);
 
         // 7. Hold + release stage. The gain may not rise above the minimum of the last holdMs
         //    (keeps the gain constant between the crests of a bass waveform -> no ripple),
         //    then recovers with a one-pole release. Attack is instant here (the moving
         //    average below makes the ramp). Always releaseGain <= holdMin <= m.
-        const float hm = holdMin.push(m);
+        hm = holdMin.push(m);
         if (hm < releaseGain)
             releaseGain = hm;
         else
@@ -324,14 +340,14 @@ void CLimiter2::process(float* buffer, int frames)
         g = movingAvg.push(releaseGain);
 
         // 9. Apply + last-resort safety clamp (float rounding, ceiling changes).
-        float outL = dL * g;
-        float outR = dR * g;
+        outL = dL * g;
+        outR = dR * g;
 
         // 9b. Start-up crossfade dry -> processed (removes the click when the plugin is activated).
         if (fadePos < fadeLen)
         {
-            const int   k = fadePos - latency;   // <= 0 while the delay line is still filling
-            const float a = (k > 0) ? static_cast<float>(k) * invFadeLen : 0.0f;
+            k = fadePos - latency;   // <= 0 while the delay line is still filling
+            a = (k > 0) ? static_cast<float>(k) * invFadeLen : 0.0f;
             outL = rawL + (outL - rawL) * a;
             outR = rawR + (outR - rawR) * a;
             ++fadePos;
@@ -340,7 +356,7 @@ void CLimiter2::process(float* buffer, int frames)
         // 9c. Fade-out crossfade (removes the click when the plugin is stopped).
         if (isFadingOut)
         {
-            const float fadeOutGain = 1.0f - (static_cast<float>(fadeOutPos) * invFadeOutLen);
+            fadeOutGain = 1.0f - (static_cast<float>(fadeOutPos) * invFadeOutLen);
             outL *= fadeOutGain;
             outR *= fadeOutGain;
     

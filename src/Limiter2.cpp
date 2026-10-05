@@ -172,6 +172,8 @@ void CLimiter2::reset()
 
     releaseGain = 1.0f;
     fadePos = 0;
+    fadeOutPos = 0;
+    isFadingOut = false;
     driveSmoothed = driveTarget.load(std::memory_order_relaxed);
 
     lastGain.store(1.0f, std::memory_order_relaxed);

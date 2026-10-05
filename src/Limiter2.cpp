@@ -238,8 +238,9 @@ void CLimiter2::process(float* buffer, int frames)
     if (!buffer || frames <= 0 || delayL.empty())
         return;
 
-    driveStep = 0.0f;
     active = 0;
+
+    driveStep = 0.0f;
     g = 1.0f;
     rawL = 0.0f;
     rawR = 0.0f;

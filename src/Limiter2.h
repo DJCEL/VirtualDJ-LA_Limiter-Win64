@@ -112,7 +112,11 @@ private:
     int   holdSamples = 1;
     int   fadePos = 0;                // start-up crossfade position (samples)
     int   fadeLen = 1;                // start-up: latency + fade ramp (samples)
-    float invFadeLen = 1.0f;          // 1 / fade ramp length
+    float invFadeLen = 1.0f;          // 1 /   fade ramp length
+    int   fadeOutPos = 0;              // fade-out position (samples)
+    int   fadeOutLen = 1;              // fade-out duration (samples)
+    float invFadeOutLen = 1.0f;        // 1 / fade-out length
+    bool  isFadingOut = false;         // flag to track fade-out state
 
     // DSP state
     std::vector<float> delayL, delayR;

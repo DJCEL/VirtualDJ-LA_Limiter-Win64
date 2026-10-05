@@ -28,7 +28,8 @@ public:
     // Allocates. Call from OnStart(), never concurrently with process().
     void prepare(int sampleRate);
     void reset();
-    void fadeOut();
+    void start(int vdjSampleRate);
+    void stop();
 
     // Thread-safe (can be called from the UI thread while process() runs).
     void setThreshold(float db);   // -30..0 dB : drive (input gain = -threshold), maximizer style

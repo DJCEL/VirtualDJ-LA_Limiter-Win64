@@ -128,6 +128,7 @@ HRESULT VDJ_API CLA_Limiter::OnStart()
 {
     m_isOn = 0;
     limiter.start(SampleRate);
+    OnParameter(ID_INIT);
     return S_OK;
 }
 //----------------------------------------------------------------------------

@@ -141,6 +141,10 @@ void CLimiter2::prepare(int vdjSampleRate)
     const int fadeRamp = (std::max)(1, static_cast<int>(std::ceil(sampleRate * static_cast<double>(FADE_IN_MS) / 1000.0)));
     fadeLen = latency + fadeRamp;
     invFadeLen = 1.0f / static_cast<float>(fadeRamp);
+    fadeOutLen = 1;
+    fadeOutPos = 0;
+    invFadeOutLen = 1.0f;
+    isFadingOut = false;
 
     delayL.assign(latency, 0.0f);
     delayR.assign(latency, 0.0f);

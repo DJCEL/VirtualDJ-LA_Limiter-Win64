@@ -127,14 +127,13 @@ HRESULT VDJ_API CLA_Limiter::OnGetParameterString(int id,char* outParam,int outP
 HRESULT VDJ_API CLA_Limiter::OnStart()
 {
     m_isOn = 0;
-    limiter.prepare(SampleRate);
-    limiter.reset();
+    limiter.start(SampleRate);
     return S_OK;
 }
 //----------------------------------------------------------------------------
 HRESULT VDJ_API CLA_Limiter::OnStop()
 {
-    limiter.fadeOut();
+    limiter.stop();
     m_isOn = 0;
     return S_OK;
 }

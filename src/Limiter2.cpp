@@ -328,13 +328,27 @@ void CLimiter2::process(float* buffer, int frames)
             ++fadePos;
         }
 
-        outL = std::clamp(outL, -ceiling, ceiling);
-        outR = std::clamp(outR, -ceiling, ceiling);
-        buffer[2 * i]     = outL;
-        buffer[2 * i + 1] = outR;
+        // 9c. Fade-out crossfade (removes the click when the plugin is stopped).
+        if (isFadingOut)
+        {
+            const float fadeOutGain = 1.0f - (static_cast<float>(fadeOutPos) * invFadeOutLen);
+            outL *= fadeOutGain;
+            outR *= fadeOutGain;
+    
+            if (++fadeOutPos >= fadeOutLen)
+            {
+                isFadingOut = false;
+                reset();  // Clean reset after fade completes
+            }
+         }
 
-        if (g < 0.999f)
-            ++active;
+     outL = std::clamp(outL, -ceiling, ceiling);
+     outR = std::clamp(outR, -ceiling, ceiling);
+      buffer[2 * i]     = outL;
+      buffer[2 * i + 1] = outR;
+
+      if (g < 0.999f)
+          ++active;
     }
 
     lastGain.store(g, std::memory_order_relaxed);

@@ -194,7 +194,7 @@ void CLimiter2::stop()
 {
   // Gradual fade-out instead of immediate reset ie gradually set gain to 0.
   fadeOutLen = (std::max)(1, static_cast<int>(std::ceil(sampleRate * static_cast<double>(FADE_OUT_MS) / 1000.0)));
-  invFadeOutLen = 1.0f / static_cast<float>(fadeOutLen);  // ← ADD THIS LINE
+  invFadeOutLen = 1.0f / static_cast<float>(fadeOutLen);
   fadeOutPos = 0;
   isFadingOut = true;
 }

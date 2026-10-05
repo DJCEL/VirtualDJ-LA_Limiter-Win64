@@ -178,7 +178,13 @@ void CLimiter2::reset()
     activeFrames.store(0, std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
-void CLimiter2::fadeOut()
+void CLimiter2::start(int vdjSampleRate)
+{
+  prepare(vdjSampleRate);
+  reset();
+}
+//----------------------------------------------------------------------------
+void CLimiter2::stop()
 {
   // TODO: Gradual fade-out instead of immediate reset ie gradually set gain to 0.
   reset();

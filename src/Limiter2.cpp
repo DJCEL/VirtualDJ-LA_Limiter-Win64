@@ -180,7 +180,7 @@ void CLimiter2::reset()
 //----------------------------------------------------------------------------
 void CLimiter2::fadeOut()
 {
-  // TODO: Gradual fade-out instead of immediate reset
+  // TODO: Gradual fade-out instead of immediate reset ie gradually set gain to 0.
   reset();
 }
 //----------------------------------------------------------------------------

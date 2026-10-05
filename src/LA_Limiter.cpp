@@ -25,7 +25,7 @@ HRESULT VDJ_API CLA_Limiter::OnLoad()
     DeclareParameterSlider(&SliderValue[1], ID_SLIDER_2,"Output","OUT",0.0f);
     DeclareParameterSlider(&SliderValue[2], ID_SLIDER_3, "releaseMs", "REL", 0.146f);
     DeclareParameterSlider(&SliderValue[3], ID_SLIDER_4, "holdMs", "HOL", 0.3f);
-    DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_1,"True Peak","ISP",false);
+    DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_1,"True Peak","TP",false);
     DeclareParameterSwitch(&is_FinalSecurity, ID_SWITCH_2, "Final Security", "SEC", false);
     DeclareParameterSwitch(&m_isOn, ID_SWITCH_3, "O", "O", false);
 

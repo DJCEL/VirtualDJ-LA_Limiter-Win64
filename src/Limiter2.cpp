@@ -238,6 +238,27 @@ void CLimiter2::process(float* buffer, int frames)
     if (!buffer || frames <= 0 || delayL.empty())
         return;
 
+    driveStep = 0.0f;
+    active = 0;
+    g = 1.0f;
+    rawL = 0.0f;
+    rawR = 0.0f;
+    inL = 0.0f;
+    inR = 0.0f;
+    dL = 0.0f;
+    dR = 0.0f;
+    peak = 0.0f;
+    fadeOutGain = 0.0f;
+    k = 0;
+    a = 0.0f;
+    outL = 0.0f;
+    outR = 0.0f;
+    hm = 0.0f;
+    m = 0.0f;
+    required = 0.0f;
+    yl = 0.0f;
+    yr = 0.0f;
+
     // Block-rate parameter snapshot.
     const float ceiling = ceilingTarget.load(std::memory_order_relaxed);
     const float drive   = driveTarget.load(std::memory_order_relaxed);

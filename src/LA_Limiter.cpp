@@ -11,7 +11,7 @@ CLA_Limiter::CLA_Limiter()
     holdMs = 0.0f;
     m_isOn = 0;
     nbOn = 0;
-    memset(SliderValue, 0, sizeof 4 * sizeof(float));
+    memset(SliderValue, 0, 4 * sizeof(float));
 }
 //----------------------------------------------------------------------------
 CLA_Limiter::~CLA_Limiter()
@@ -21,8 +21,8 @@ CLA_Limiter::~CLA_Limiter()
 //----------------------------------------------------------------------------
 HRESULT VDJ_API CLA_Limiter::OnLoad()
 {
-    DeclareParameterSlider(&SliderValue[0], ID_SLIDER_1, "Threshold", "THR", 1.0f);
-    DeclareParameterSlider(&SliderValue[1], ID_SLIDER_2,"Output","OUT",1.0f);
+    DeclareParameterSlider(&SliderValue[0], ID_SLIDER_1, "Threshold", "THR", 0.0f);
+    DeclareParameterSlider(&SliderValue[1], ID_SLIDER_2,"Output","OUT",0.0f);
     DeclareParameterSlider(&SliderValue[2], ID_SLIDER_3, "releaseMs", "REL", 0.146f);
     DeclareParameterSlider(&SliderValue[3], ID_SLIDER_4, "holdMs", "HOL", 0.3f);
     DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_1,"True Peak","ISP",false);
@@ -76,11 +76,11 @@ void CLA_Limiter::OnSlider(int id)
     switch (id)
     {
 	    case ID_SLIDER_1:
-            threshold_db = -30.0f * (1.0f - SliderValue[0]);
+            threshold_db = -30.0f * SliderValue[0];
             limiter.setThreshold(threshold_db, -30.0f, 0.0f);
 		    break;
 	    case ID_SLIDER_2:
-            output_db = -30.0f * (1.0f - SliderValue[1]);
+            output_db = -30.0f * SliderValue[1];
             limiter.setOutput(output_db, -30.0f, 0.0f);
 		    break;
         case ID_SLIDER_3:

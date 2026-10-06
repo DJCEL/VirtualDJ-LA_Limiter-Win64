@@ -68,12 +68,6 @@ unsigned short Data3;
 unsigned char Data4[ 8 ];
 } GUID;
 #endif
-#elif defined(__ANDROID__)
-#define VDJ_BITMAP char *
-#define VDJ_WINDOW void *
-#define VDJ_HINSTANCE	void *
-#define VDJ_API
-typedef unsigned int ULONG;
 #endif
 
 //////////////////////////////////////////////////////////////////////////

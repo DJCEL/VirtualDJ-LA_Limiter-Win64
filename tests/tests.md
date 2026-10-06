@@ -1,5 +1,3 @@
-Mes mesures (48 kHz, plafond -1 dB, drive +9 dB)
-
 Test | Résultat
 
 Sinus 50 Hz, hold 30 ms | Distorsion quasi nulle (-169 dB)

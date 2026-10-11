@@ -1,23 +1,5 @@
 #include "Limiter2.h"
 
-namespace
-{
-    
-    double besselI0(double x)
-    {
-        // Modified Bessel function of the first kind, order 0 (series expansion).
-        double sum = 1.0, term = 1.0;
-        const double q = 0.25 * x * x;
-        for (int k = 1; k < 64; ++k)
-        {
-            term *= q / (static_cast<double>(k) * k);
-            sum += term;
-            if (term < 1.0e-14 * sum)
-                break;
-        }
-        return sum;
-    }
-}
 
 //----------------------------------------------------------------------------
 // SlidingMin

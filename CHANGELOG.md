@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.5 (2026-10-11)
+- Smoother attack
+- Add slider for Look-ahead
+
 ## 2.0.4 (2026-10-06)
 - some minor fixes
 

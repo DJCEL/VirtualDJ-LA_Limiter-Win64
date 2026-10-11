@@ -161,7 +161,8 @@ void CLimiter2::prepare(int vdjSampleRate)
     movingAvg1.init(w1);
     movingAvg2.init(w2);
 
-    driveCoef = static_cast<float>(std::exp(-1.0 / (sampleRate * 0.005)));  // 5 ms
+	const float driveCoefMs = 5.0f; // 5 ms   
+    driveCoef = static_cast<float>(std::exp(-1.0f / (sampleRate * static_cast<double>(driveCoefMs) / 1000.0f)));
     appliedReleaseMs = -1.0f; // force recompute
 
     driveSmoothed = driveTarget.load(std::memory_order_relaxed);

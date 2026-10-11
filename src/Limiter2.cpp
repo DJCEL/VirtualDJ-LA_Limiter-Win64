@@ -139,7 +139,7 @@ void CLimiter2::prepare(int vdjSampleRate)
     // Start-up crossfade: the delay line is empty at start, so the first `latency` output samples
     // would be silence (hard step = click). Fade from the dry input to the processed signal instead.
     // Dry only during the first `latency` samples, then a linear fade over FADE_IN_MS.
-    const int fadeRamp = (std::max)(1, static_cast<int>(std::ceil(sampleRate * static_cast<double>(FADE_IN_MS) / 1000.0)));
+    const int fadeRamp = (std::max)(1, static_cast<int>(std::ceil(sampleRate * static_cast<double>(FADE_IN_MS) / 1000.0f)));
     fadeLen = latency + fadeRamp;
     invFadeLen = 1.0f / static_cast<float>(fadeRamp);
     fadeOutLen = 1;
@@ -162,7 +162,7 @@ void CLimiter2::prepare(int vdjSampleRate)
     movingAvg2.init(w2);
 
     driveCoef = static_cast<float>(std::exp(-1.0 / (sampleRate * 0.005)));  // 5 ms
-    appliedReleaseMs = -1.0f;                                              // force recompute
+    appliedReleaseMs = -1.0f; // force recompute
 
     driveSmoothed = driveTarget.load(std::memory_order_relaxed);
 

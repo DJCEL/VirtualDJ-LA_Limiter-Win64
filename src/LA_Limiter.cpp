@@ -145,8 +145,8 @@ HRESULT VDJ_API CLA_Limiter::OnGetParameterString(int id,char* outParam,int outP
 HRESULT VDJ_API CLA_Limiter::OnStart()
 {
     m_isOn = 0;
-    limiter.start(SampleRate);
     OnParameter(ID_INIT);
+    limiter.start(SampleRate);
     return S_OK;
 }
 //----------------------------------------------------------------------------

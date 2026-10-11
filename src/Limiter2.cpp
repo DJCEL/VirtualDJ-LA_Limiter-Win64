@@ -126,11 +126,11 @@ void CLimiter2::buildTruePeakKernel()
 //----------------------------------------------------------------------------
 void CLimiter2::prepare(int vdjSampleRate)
 {
-    sampleRate = (std::max)(8000, vdjSampleRate);
+    sampleRate = vdjSampleRate;
 
     appliedLookaheadMs = lookaheadMs.load(std::memory_order_relaxed);
-
-    latency = (std::max)(MIN_LATENCY, static_cast<int>(std::ceil(sampleRate * static_cast<double>(appliedLookaheadMs) / 1000.0)));
+    const int appliedLookaheadSamples = static_cast<int>(std::ceil(sampleRate * static_cast<double>(appliedLookaheadMs) / 1000.0f));
+    latency = (std::max)(MIN_LATENCY, appliedLookaheadSamples);
 
     // The true-peak detector already consumes (TP_LATENCY - 1) samples of the latency budget.
     // Guarantee: audio delay = rampLength + TP_LATENCY - 1  (see header).
@@ -151,7 +151,10 @@ void CLimiter2::prepare(int vdjSampleRate)
     delayR.assign(latency, 0.0f);
 
     slidingMin.init(rampLength);
-    holdMin.init(static_cast<int>(std::ceil(sampleRate * 0.1)) + 1);   // up to 100 ms of hold
+
+    const float holdMinMs = 0.1f; // up to 100 ms of hold
+    const int holdMinSamples = static_cast<int>(std::ceil(sampleRate * holdMinMs)) + 1;
+    holdMin.init(holdMinSamples);
 
     const int w1 = (rampLength + 1) / 2;
 	const int w2 = rampLength + 1 - w1; // w1 + w2 - 1 = rampLength

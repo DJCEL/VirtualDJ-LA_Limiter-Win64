@@ -12,6 +12,7 @@ CLA_Limiter::CLA_Limiter()
     m_isOn = 0;
     nbOn = 0;
     memset(SliderValue, 0, 4 * sizeof(float));
+    lookaheadMs = 0.0f;
 }
 //----------------------------------------------------------------------------
 CLA_Limiter::~CLA_Limiter()
@@ -25,6 +26,7 @@ HRESULT VDJ_API CLA_Limiter::OnLoad()
     DeclareParameterSlider(&SliderValue[1], ID_SLIDER_2,"Output","OUT",0.0f);
     DeclareParameterSlider(&SliderValue[2], ID_SLIDER_3, "releaseMs", "REL", 0.146f);
     DeclareParameterSlider(&SliderValue[3], ID_SLIDER_4, "holdMs", "HOL", 0.3f);
+    DeclareParameterSlider(&SliderValue[4], ID_SLIDER_5, "Lookahead", "LA", 0.167f);
     DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_1,"True Peak","TP",false);
     DeclareParameterSwitch(&is_FinalSecurity, ID_SWITCH_2, "Final Security", "SEC", false);
     DeclareParameterSwitch(&m_isOn, ID_SWITCH_3, "O", "O", false);
@@ -38,7 +40,7 @@ HRESULT VDJ_API CLA_Limiter::OnGetPluginInfo(TVdjPluginInfo8* infos)
     infos->PluginName = "LA_Limiter";
     infos->Author = "DJ CEL";
     infos->Description = "Look-ahead stereo limiter";
-    infos->Version = "2.0.4";
+    infos->Version = "2.0.5";
     infos->Flags = 0x00;
     infos->Bitmap = NULL;
     return S_OK;
@@ -59,6 +61,7 @@ HRESULT VDJ_API CLA_Limiter::OnParameter(int id)
         OnSlider(ID_SLIDER_2);
         OnSlider(ID_SLIDER_3);
         OnSlider(ID_SLIDER_4);
+        OnSlider(ID_SLIDER_5);
         OnButton(ID_SWITCH_1);
         OnButton(ID_SWITCH_2);
     }
@@ -90,6 +93,10 @@ void CLA_Limiter::OnSlider(int id)
         case ID_SLIDER_4:
             holdMs = SliderValue[3] * 100.0f;
             limiter.setHoldMs(holdMs, 0.0f, 100.0f);
+            break;
+        case ID_SLIDER_5:
+            lookaheadMs = 0.5f + SliderValue[4] * (5.0f - 0.5f);
+            limiter.setLookaheadMs(lookaheadMs, 0.5f, 5.0f);
             break;
     }
 }
@@ -125,6 +132,10 @@ HRESULT VDJ_API CLA_Limiter::OnGetParameterString(int id,char* outParam,int outP
 
         case ID_SLIDER_4:
             std::snprintf(outParam, outParamSize, "%.0f ms", holdMs);
+            break;
+
+        case ID_SLIDER_5:
+            std::snprintf(outParam, outParamSize, "%.2f ms", lookaheadMs);
             break;
     }
 

@@ -19,7 +19,7 @@
 //
 // The sliding-min followed by a moving average of the same length guarantees that
 // the gain has fully reached the required value when the peak leaves the delay line.
-// Latency is constant (independent of the True Peak switch): LATENCY_MS.
+// Latency is constant (independent of the True Peak switch): DEFAULT_LATENCY_MS.
 class CLimiter2
 {
 public:
@@ -35,6 +35,7 @@ public:
     void setReleaseMs(float ms, float minMs, float maxMs);   // 5..1000 ms, default 150
     void setHoldMs(float ms, float minMs, float maxMs);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
     void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
+	void setLookaheadMs(float ms, float minMs, float maxMs); // 1.25..5.0 ms, default 1.25 (affects audio delay and attack ramp length)
 
     float getGainReductionDb() const;                    // last gain of the last block (<= 0 dB)
     int getLatencySamples() const;
@@ -44,7 +45,8 @@ private:
     static constexpr int   TP_TAPS     = 12;               // taps per phase
     static constexpr int   TP_PHASES   = 3;                // 4x oversampling -> 3 interpolated points
     static constexpr int   TP_LATENCY  = TP_TAPS / 2;      // samples of look-ahead needed by the FIR
-    static constexpr float LATENCY_MS  = 1.25f;            // total latency (audio delay)
+    static constexpr float DEFAULT_LATENCY_MS  = 1.25f;            // total latency (audio delay)
+	static constexpr float MAX_LATENCY_MS  = 5.0f;            // maximum latency (audio delay)
     static constexpr int   MIN_LATENCY = 16;               // samples
     static constexpr float FADE_IN_MS  = 5.0f;             // start-up crossfade dry -> processed
     static constexpr float FADE_OUT_MS = 5.0f;  // fade-out duration (same as fade-in for consistency)
@@ -86,6 +88,7 @@ private:
     void reset();
     void buildTruePeakKernel();
     float dbToLinear(float db);
+    double besselI0(double x);
 
     // Parameters (written by the UI thread, read once per block by the audio thread)
     std::atomic<float> driveTarget   { 1.0f };
@@ -94,6 +97,7 @@ private:
     std::atomic<float> holdMs        { 30.0f };
     std::atomic<bool>  truePeak      { false };
     std::atomic<bool>  finalSecurity { false };
+    std::atomic<float> lookaheadMs { DEFAULT_LATENCY_MS };
 
     // Meters (written by the audio thread)
     std::atomic<float> lastGain      { 1.0f };
@@ -114,6 +118,7 @@ private:
     int   fadeOutLen = 1;              // fade-out duration (samples)
     float invFadeOutLen = 1.0f;        // 1 / fade-out length
     bool  isFadingOut = false;         // flag to track fade-out state
+	float appliedLookaheadMs = DEFAULT_LATENCY_MS;
 
     // DSP state
     std::vector<float> delayL, delayR;
@@ -127,7 +132,8 @@ private:
 
     SlidingMin    slidingMin;
     SlidingMin    holdMin;      // gain may not rise above the minimum of the last holdMs
-    MovingAverage movingAvg;
+    MovingAverage movingAvg1;
+    MovingAverage movingAvg2;
 
     float releaseGain   = 1.0f;
     float driveSmoothed = 1.0f;

@@ -2,9 +2,10 @@
 
 namespace
 {
-    // Modified Bessel function of the first kind, order 0 (series expansion).
+    
     double besselI0(double x)
     {
+        // Modified Bessel function of the first kind, order 0 (series expansion).
         double sum = 1.0, term = 1.0;
         const double q = 0.25 * x * x;
         for (int k = 1; k < 64; ++k)
@@ -83,6 +84,23 @@ float CLimiter2::MovingAverage::push(float v)
     return static_cast<float>(sum * invLen);
 }
 //----------------------------------------------------------------------------
+// besselI0
+// Modified Bessel function of the first kind, order 0 (series expansion).
+//----------------------------------------------------------------------------
+double CLimiter2::besselI0(double x)
+{
+    double sum = 1.0, term = 1.0;
+    const double q = 0.25 * x * x;
+    for (int k = 1; k < 64; ++k)
+    {
+        term *= q / (static_cast<double>(k) * k);
+        sum += term;
+        if (term < 1.0e-14 * sum)
+            break;
+    }
+    return sum;
+}
+//----------------------------------------------------------------------------
 // Limiter
 //----------------------------------------------------------------------------
 CLimiter2::CLimiter2()
@@ -128,7 +146,9 @@ void CLimiter2::prepare(int vdjSampleRate)
 {
     sampleRate = (std::max)(8000, vdjSampleRate);
 
-    latency = (std::max)(MIN_LATENCY, static_cast<int>(std::ceil(sampleRate * static_cast<double>(LATENCY_MS) / 1000.0)));
+    appliedLookaheadMs = lookaheadMs.load(std::memory_order_relaxed);
+
+    latency = (std::max)(MIN_LATENCY, static_cast<int>(std::ceil(sampleRate * static_cast<double>(appliedLookaheadMs) / 1000.0)));
 
     // The true-peak detector already consumes (TP_LATENCY - 1) samples of the latency budget.
     // Guarantee: audio delay = rampLength + TP_LATENCY - 1  (see header).
@@ -150,7 +170,11 @@ void CLimiter2::prepare(int vdjSampleRate)
 
     slidingMin.init(rampLength);
     holdMin.init(static_cast<int>(std::ceil(sampleRate * 0.1)) + 1);   // up to 100 ms of hold
-    movingAvg.init(rampLength);
+
+    const int w1 = (rampLength + 1) / 2;
+	const int w2 = rampLength + 1 - w1; // w1 + w2 - 1 = rampLength
+    movingAvg1.init(w1);
+    movingAvg2.init(w2);
 
     driveCoef = static_cast<float>(std::exp(-1.0 / (sampleRate * 0.005)));  // 5 ms
     appliedReleaseMs = -1.0f;                                              // force recompute
@@ -172,7 +196,8 @@ void CLimiter2::reset()
 
     slidingMin.clear();
     holdMin.clear();
-    movingAvg.clear();
+    movingAvg1.clear();
+    movingAvg2.clear();
 
     releaseGain = 1.0f;
     fadePos = 0;
@@ -231,6 +256,11 @@ void CLimiter2::setHoldMs(float ms, float minMs, float maxMs)
 void CLimiter2::setFinalSecurity(bool enabled)
 {
     finalSecurity.store(enabled, std::memory_order_relaxed);
+}
+//----------------------------------------------------------------------------
+void CLimiter2::setLookaheadMs(float ms, float minMs, float maxMs)
+{
+    lookaheadMs.store(std::clamp(ms, minMs, maxMs), std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
 void CLimiter2::process(float* buffer, int frames)
@@ -319,8 +349,8 @@ void CLimiter2::process(float* buffer, int frames)
         else
             releaseGain = releaseCoef * releaseGain + (1.0f - releaseCoef) * hm;
 
-        // 8. Moving average = linear attack ramp finishing exactly when the peak exits the delay.
-        g = movingAvg.push(releaseGain);
+        // 8. Moving average = S attack ramp finishing exactly when the peak exits the delay.
+        g = movingAvg2.push(movingAvg1.push(releaseGain));
 
         // 9. Apply + last-resort safety clamp (float rounding, ceiling changes).
         float outL = dL * g;

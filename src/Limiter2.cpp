@@ -366,7 +366,7 @@ void CLimiter2::process(float* buffer, int frames)
             }
         }
 
-        // 9d. We clamp between -1.0f and 1.0f (last security)
+        // 9d. We clamp between -ceiling and ceiling (last security)
         if (security)
         {
             outL = std::clamp(outL, -ceiling, ceiling);

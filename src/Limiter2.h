@@ -35,7 +35,7 @@ public:
     void setReleaseMs(float ms, float minMs, float maxMs);   // 5..1000 ms, default 150
     void setHoldMs(float ms, float minMs, float maxMs);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
     void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
-	void setLookaheadMs(float ms, float minMs, float maxMs); // 1.25..5.0 ms, default 1.25 (affects audio delay and attack ramp length)
+	void setLookaheadMs(float ms, float minMs, float maxMs); // 0.5..5.0 ms, default 1.25 (affects audio delay and attack ramp length)
 
     float getGainReductionDb() const;                    // last gain of the last block (<= 0 dB)
     int getLatencySamples() const;

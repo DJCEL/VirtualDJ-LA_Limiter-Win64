@@ -11,7 +11,7 @@ CLA_Limiter::CLA_Limiter()
     holdMs = 0.0f;
     m_isOn = 0;
     nbOn = 0;
-    memset(SliderValue, 0, 4 * sizeof(float));
+    memset(SliderValue, 0, 5 * sizeof(float));
     lookaheadMs = 0.0f;
 }
 //----------------------------------------------------------------------------

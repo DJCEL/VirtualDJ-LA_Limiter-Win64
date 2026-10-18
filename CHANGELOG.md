@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.6 (2026-10-18)
+- True Peak Detector 8x (previously 4x)
+
 ## 2.0.5 (2026-10-11)
 - Smoother attack
 - Add slider for Look-ahead

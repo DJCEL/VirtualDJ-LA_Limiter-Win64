@@ -6,3 +6,6 @@
 /VS2026/Release/
 /src/Plugin.aps
 /src/old/
+/tests/test_limiter2.exe
+/tests/test_limiter2
+/tests/*.obj

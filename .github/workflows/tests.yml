@@ -1,0 +1,11 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  limiter2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: g++ -O2 -DNDEBUG -Wall -Wextra -std=c++17 -I src tests/test_limiter2.cpp src/Limiter2.cpp -o tests/test_limiter2
+      - name: Run
+        run: ./tests/test_limiter2

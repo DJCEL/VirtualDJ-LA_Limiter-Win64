@@ -11,8 +11,9 @@ CLA_Limiter::CLA_Limiter()
     holdMs = 0.0f;
     m_isOn = 0;
     nbOn = 0;
-    memset(SliderValue, 0, 5 * sizeof(float));
+    memset(SliderValue, 0, 6 * sizeof(float));
     lookaheadMs = 0.0f;
+    TruePeakOversamplingFactor = 0;
 }
 //----------------------------------------------------------------------------
 CLA_Limiter::~CLA_Limiter()
@@ -22,14 +23,16 @@ CLA_Limiter::~CLA_Limiter()
 //----------------------------------------------------------------------------
 HRESULT VDJ_API CLA_Limiter::OnLoad()
 {
+    DeclareParameterSwitch(&m_isOn, ID_SWITCH_1, "O", "O", false);
     DeclareParameterSlider(&SliderValue[0], ID_SLIDER_1, "Threshold", "THR", 0.0f);
     DeclareParameterSlider(&SliderValue[1], ID_SLIDER_2,"Output","OUT",0.0f);
     DeclareParameterSlider(&SliderValue[2], ID_SLIDER_3, "releaseMs", "REL", 0.146f);
     DeclareParameterSlider(&SliderValue[3], ID_SLIDER_4, "holdMs", "HOL", 0.3f);
     DeclareParameterSlider(&SliderValue[4], ID_SLIDER_5, "Lookahead", "LA", 0.167f);
-    DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_1,"True Peak","TP",false);
     DeclareParameterSwitch(&is_FinalSecurity, ID_SWITCH_2, "Final Security", "SEC", false);
-    DeclareParameterSwitch(&m_isOn, ID_SWITCH_3, "O", "O", false);
+    DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_3,"True Peak","TP",false);
+    DeclareParameterSlider(&SliderValue[5], ID_SLIDER_6, "True Peak Detector", "TPD", 1.0f);
+
 
     OnParameter(ID_INIT);
     return S_OK;
@@ -40,7 +43,7 @@ HRESULT VDJ_API CLA_Limiter::OnGetPluginInfo(TVdjPluginInfo8* infos)
     infos->PluginName = "LA_Limiter";
     infos->Author = "DJ CEL";
     infos->Description = "Look-ahead stereo limiter";
-    infos->Version = "2.0.5";
+    infos->Version = "2.0.6";
     infos->Flags = 0x00;
     infos->Bitmap = NULL;
     return S_OK;
@@ -62,8 +65,9 @@ HRESULT VDJ_API CLA_Limiter::OnParameter(int id)
         OnSlider(ID_SLIDER_3);
         OnSlider(ID_SLIDER_4);
         OnSlider(ID_SLIDER_5);
-        OnButton(ID_SWITCH_1);
+        OnSlider(ID_SLIDER_6);
         OnButton(ID_SWITCH_2);
+        OnButton(ID_SWITCH_3);
     }
     else
     {
@@ -98,6 +102,10 @@ void CLA_Limiter::OnSlider(int id)
             lookaheadMs = 0.5f + SliderValue[4] * (5.0f - 0.5f);
             limiter.setLookaheadMs(lookaheadMs, 0.5f, 5.0f);
             break;
+        case ID_SLIDER_6:
+            TruePeakOversamplingFactor = SliderValue[5] > 0.5f ? 8 : 4;
+            limiter.setTruePeakOversampling(TruePeakOversamplingFactor);
+            break;
     }
 }
 //------------------------------------------------------------------------------
@@ -105,11 +113,11 @@ void CLA_Limiter::OnButton(int id)
 {
     switch(id)
 	{
-	    case ID_SWITCH_1:
-            limiter.setTruePeak(is_TruePeak != 0);
-		    break;
         case ID_SWITCH_2:
             limiter.setFinalSecurity(is_FinalSecurity != 0);
+            break;
+        case ID_SWITCH_3:
+            limiter.setTruePeak(is_TruePeak != 0);
             break;
 	}
 }
@@ -136,6 +144,10 @@ HRESULT VDJ_API CLA_Limiter::OnGetParameterString(int id,char* outParam,int outP
 
         case ID_SLIDER_5:
             std::snprintf(outParam, outParamSize, "%.2f ms", lookaheadMs);
+            break;
+
+        case ID_SLIDER_6:
+            std::snprintf(outParam, outParamSize, "%s", TruePeakOversamplingFactor == 8 ? "8x (24 taps/phase)" : "4x (12 taps/phase)" );
             break;
     }
 

@@ -11,7 +11,7 @@
 // Signal flow (all per sample, interleaved stereo float):
 //   in -> drive (smoothed) -> +-> audio delay (LATENCY) ---------------------------> x gain -> clamp -> out
 //                              |
-//                              +-> true-peak detector (4x FIR, 12 taps/phase)
+//                              +-> true-peak detector (4x: 12 taps/phase, or 8x: 24 taps/phase)
 //                                    -> required gain  = min(1, ceiling / peak)
 //                                    -> sliding minimum over `rampLength` samples
 //                                    -> hold (min over holdMs) + one-pole release
@@ -19,7 +19,7 @@
 //
 // The sliding-min followed by a moving average of the same length guarantees that
 // the gain has fully reached the required value when the peak leaves the delay line.
-// Latency is constant (independent of the True Peak switch): DEFAULT_LATENCY_MS.
+// Latency is constant (independent of the True Peak switch and of the 4x/8x choice): DEFAULT_LATENCY_MS.
 class CLimiter2
 {
 public:
@@ -32,6 +32,7 @@ public:
     void setThreshold(float db, float minDb, float maxDb);   // -30..0 dB : drive (input gain = -threshold), maximizer style
     void setOutput(float db, float minDb, float maxDb);      // -30..0 dB : output ceiling
     void setTruePeak(bool enabled);
+    void setTruePeakOversampling(int factor); // 4 (default, 12 taps/phase) or 8 (24 taps/phase, more accurate near Nyquist)
     void setReleaseMs(float ms, float minMs, float maxMs);   // 5..1000 ms, default 150
     void setHoldMs(float ms, float minMs, float maxMs);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
     void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
@@ -42,9 +43,9 @@ public:
     int isActive() const;
 
 private:
-    static constexpr int   TP_TAPS     = 12;               // taps per phase
-    static constexpr int   TP_PHASES   = 3;                // 4x oversampling -> 3 interpolated points
-    static constexpr int   TP_LATENCY  = TP_TAPS / 2;      // samples of look-ahead needed by the FIR
+    static constexpr int   TP_TAPS_MAX   = 24;              // history length = taps of the longest (8x) kernel
+    static constexpr int   TP_PHASES_MAX = 7;               // 8x oversampling -> 7 interpolated points
+    static constexpr int   TP_LATENCY    = TP_TAPS_MAX / 2; // detector delay (samples), identical in 4x and 8x so that latency never changes
     static constexpr float DEFAULT_LATENCY_MS  = 1.25f;            // total latency (audio delay)
 	static constexpr float MAX_LATENCY_MS  = 5.0f;            // maximum latency (audio delay)
     static constexpr int   MIN_LATENCY = 16;               // samples
@@ -96,6 +97,7 @@ private:
     std::atomic<float> releaseMs     { 150.0f };
     std::atomic<float> holdMs        { 30.0f };
     std::atomic<bool>  truePeak      { false };
+    std::atomic<int>   truePeakOs    { 4 };      // 4 or 8
     std::atomic<bool>  finalSecurity { false };
     std::atomic<float> lookaheadMs { DEFAULT_LATENCY_MS };
 
@@ -124,11 +126,20 @@ private:
     std::vector<float> delayL, delayR;
     int   delayPos = 0;
 
-    float histL[2 * TP_TAPS] = {};    // double-written history -> contiguous window
-    float histR[2 * TP_TAPS] = {};
+    float histL[2 * TP_TAPS_MAX] = {};    // double-written history -> contiguous window
+    float histR[2 * TP_TAPS_MAX] = {};
     int   histPos = 0;
 
-    float tpKernel[TP_PHASES][TP_TAPS] = {};
+    // Interpolation kernels. Both are centred on the same slot (TP_LATENCY-1) of the history window,
+    // so switching 4x <-> 8x needs no reset and does not change the latency.
+    struct TpKernel
+    {
+        int   phases = 0;                       // oversampling factor - 1
+        int   taps   = 0;                       // taps per phase
+        int   first  = 0;                       // index of the first tap inside the history window
+        float k[TP_PHASES_MAX][TP_TAPS_MAX] = {};
+    };
+    TpKernel tpKernels[2];                      // [0] = 4x, [1] = 8x
 
     SlidingMin    slidingMin;
     SlidingMin    holdMin;      // gain may not rise above the minimum of the last holdMs

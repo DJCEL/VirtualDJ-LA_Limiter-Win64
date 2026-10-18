@@ -90,37 +90,49 @@ CLimiter2::CLimiter2()
     buildTruePeakKernel();
 }
 //----------------------------------------------------------------------------
-// 4x oversampling: 3 interpolation phases (1/4, 2/4, 3/4), 12 taps each,
-// Kaiser-windowed sinc, normalized to unity DC gain.
-// Similar to a structure as the ITU-R BS.1770 true-peak interpolator (4x, 48 taps total);
+// True-peak interpolation kernels, Kaiser-windowed sinc, normalized to unity DC gain.
+//   4x: 3 phases (1/4, 2/4, 3/4), 12 taps each  (same structure as the ITU-R BS.1770 true-peak interpolator)
+//   8x: 7 phases (1/8 ... 7/8),   24 taps each  (error < ~0.05 dB up to 22 kHz)
+// Both kernels are centred on history slot (TP_LATENCY-1): the detector delay is identical in both modes.
 //----------------------------------------------------------------------------
 void CLimiter2::buildTruePeakKernel()
 {
-    const double pi        = 3.14159265358979323846;
-    const double beta      = 6.0;
-    const double halfWidth = TP_TAPS / 2.0;
-    const double i0Beta    = besselI0(beta);
+    const double pi     = 3.14159265358979323846;
+    const double beta   = 6.0;
+    const double i0Beta = besselI0(beta);
 
-    for (int p = 0; p < TP_PHASES; ++p)
+    const int osFactor[2] = { 4, 8 };  // 4x, 8x
+    const int taps[2]     = { 12, 24 };
+
+    for (int m = 0; m < 2; ++m)
     {
-        const double f = (p + 1) / 4.0;
-        double k[TP_TAPS];
-        double sum = 0.0;
+        TpKernel& K = tpKernels[m];
+        K.phases = osFactor[m] - 1;
+        K.taps   = taps[m];
+        K.first  = TP_LATENCY - K.taps / 2;
+        const double halfWidth = K.taps / 2.0;
 
-        for (int i = 0; i < TP_TAPS; ++i)
+        for (int p = 0; p < K.phases; ++p)
         {
-            // Tap i sits at offset (i - (TP_LATENCY-1)) from the centre sample c;
-            // we interpolate at c + f.
-            const double t = static_cast<double>(i - (TP_LATENCY - 1)) - f;
-            const double x = pi * t;
-            const double s = (std::sin)(x) / x;
-            const double r = t / halfWidth;
-            const double w = besselI0(beta * (std::sqrt)((std::max)(0.0, 1.0 - r * r))) / i0Beta;
-            k[i] = s * w;
-            sum += k[i];
+            const double f = (p + 1) / static_cast<double>(osFactor[m]);
+            double k[TP_TAPS_MAX];
+            double sum = 0.0;
+
+            for (int i = 0; i < K.taps; ++i)
+            {
+                // Tap i sits at history slot (first + i), i.e. at offset (first + i - (TP_LATENCY-1))
+                // from the centre sample c; we interpolate at c + f.
+                const double t = static_cast<double>(K.first + i - (TP_LATENCY - 1)) - f;
+                const double x = pi * t;
+                const double s = (std::sin)(x) / x;
+                const double r = t / halfWidth;
+                const double w = besselI0(beta * (std::sqrt)((std::max)(0.0, 1.0 - r * r))) / i0Beta;
+                k[i] = s * w;
+                sum += k[i];
+            }
+            for (int i = 0; i < K.taps; ++i)
+                K.k[p][i] = static_cast<float>(k[i] / sum);
         }
-        for (int i = 0; i < TP_TAPS; ++i)
-            tpKernel[p][i] = static_cast<float>(k[i] / sum);
     }
 }
 //----------------------------------------------------------------------------
@@ -229,6 +241,12 @@ void CLimiter2::setTruePeak(bool enabled)
     truePeak.store(enabled, std::memory_order_relaxed);
 }
 //----------------------------------------------------------------------------
+void CLimiter2::setTruePeakOversampling(int factor)
+{
+    // No reset needed: both kernels share the same centre and delay.
+    truePeakOs.store(factor == 8 ? 8 : 4, std::memory_order_relaxed);
+}
+//----------------------------------------------------------------------------
 void CLimiter2::setReleaseMs(float ms,float minMs,float maxMs)
 {
     releaseMs.store(std::clamp(ms, minMs, maxMs), std::memory_order_relaxed);
@@ -258,6 +276,7 @@ void CLimiter2::process(float* buffer, int frames)
     const float ceiling = ceilingTarget.load(std::memory_order_relaxed);
     const float drive   = driveTarget.load(std::memory_order_relaxed);
     const bool  useTP   = truePeak.load(std::memory_order_relaxed);
+    const TpKernel& tpk = tpKernels[truePeakOs.load(std::memory_order_relaxed) == 8 ? 1 : 0];
     const float relMs   = releaseMs.load(std::memory_order_relaxed);
     const bool security = finalSecurity.load(std::memory_order_relaxed);
 
@@ -293,27 +312,29 @@ void CLimiter2::process(float* buffer, int frames)
             delayPos = 0;
 
         // 3. History for the FIR (double-write -> contiguous, oldest..newest).
-        histL[histPos] = histL[histPos + TP_TAPS] = inL;
-        histR[histPos] = histR[histPos + TP_TAPS] = inR;
-        if (++histPos >= TP_TAPS)
+        histL[histPos] = histL[histPos + TP_TAPS_MAX] = inL;
+        histR[histPos] = histR[histPos + TP_TAPS_MAX] = inR;
+        if (++histPos >= TP_TAPS_MAX)
             histPos = 0;
         const float* hl = &histL[histPos];
         const float* hr = &histR[histPos];
 
-        // 4. Peak of the centre sample c = n - (TP_LATENCY-1) and, if enabled,
-        //    of the 3 interpolated points between c and c+1 (stereo linked).
+        // 4. Peak of the centre sample c and, if enabled, of the 3 (4x) or 7 (8x)
+        //    interpolated points between c and c+1 (stereo linked).
         float peak = (std::max)(std::fabs(hl[TP_LATENCY - 1]), std::fabs(hr[TP_LATENCY - 1]));
         if (useTP)
         {
-            for (int p = 0; p < TP_PHASES; ++p)
+            const float* wl = hl + tpk.first;
+            const float* wr = hr + tpk.first;
+            for (int p = 0; p < tpk.phases; ++p)
             {
-                const float* kern = tpKernel[p];
+                const float* kern = tpk.k[p];
                 float yl = 0.0f;
                 float yr = 0.0f;
-                for (int t = 0; t < TP_TAPS; ++t)
+                for (int t = 0; t < tpk.taps; ++t)
                 {
-                    yl += hl[t] * kern[t];
-                    yr += hr[t] * kern[t];
+                    yl += wl[t] * kern[t];
+                    yr += wr[t] * kern[t];
                 }
                 peak = (std::max)(peak, (std::max)(std::fabs(yl), std::fabs(yr)));
             }

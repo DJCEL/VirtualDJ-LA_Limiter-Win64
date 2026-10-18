@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.0.6 (2026-10-18)
-- True Peak Detector 8x (previously 4x)
+- True Peak Detector 4x/8x (now 8x by default)
 
 ## 2.0.5 (2026-10-11)
 - Smoother attack

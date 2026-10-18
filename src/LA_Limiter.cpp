@@ -96,7 +96,7 @@ void CLA_Limiter::OnSlider(int id)
             break;
         case ID_SLIDER_4:
             holdMs = SliderValue[3] * 100.0f;
-            limiter.setHoldMs(holdMs, 0.0f, 100.0f);
+            limiter.setHoldMs(holdMs, 10.0f, 100.0f);
             break;
         case ID_SLIDER_5:
             lookaheadMs = 0.5f + SliderValue[4] * (5.0f - 0.5f);

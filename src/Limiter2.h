@@ -34,7 +34,7 @@ public:
     void setTruePeak(bool enabled);
     void setTruePeakOversampling(int factor); // 4 (default, 12 taps/phase) or 8 (24 taps/phase, more accurate near Nyquist)
     void setReleaseMs(float ms, float minMs, float maxMs);   // 5..1000 ms, default 150
-    void setHoldMs(float ms, float minMs, float maxMs);      // 0..100 ms, default 30 (>= half a bass period, avoids LF distortion)
+    void setHoldMs(float ms, float minMs, float maxMs);      // 10..100 ms, default 30 (>= half a bass period, avoids LF distortion)
     void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
 	void setLookaheadMs(float ms, float minMs, float maxMs); // 0.5..5.0 ms, default 1.25 (affects audio delay and attack ramp length)
 

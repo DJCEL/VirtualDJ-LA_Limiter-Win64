@@ -33,7 +33,7 @@ HRESULT VDJ_API CLA_Limiter::OnLoad()
     DeclareParameterSwitch(&is_FinalSecurity, ID_SWITCH_2, "Final Security", "SEC", false);
     DeclareParameterSwitch(&is_TruePeak, ID_SWITCH_3,"True Peak","TP",false);
     DeclareParameterSlider(&SliderValue[5], ID_SLIDER_6, "True Peak Detector", "TPD", 1.0f);
-    DeclareParameterSwitch(&is_AutoRelease, ID_SWITCH_4, "Auto Release", "AUTO", false);
+    DeclareParameterSwitch(&is_AutoRelease, ID_SWITCH_4, "Auto Release", "AUTO", true);
 
 
     OnParameter(ID_INIT);

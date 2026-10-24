@@ -141,8 +141,7 @@ HRESULT VDJ_API CLA_Limiter::OnGetParameterString(int id,char* outParam,int outP
             break;
 
         case ID_SLIDER_3:
-            std::snprintf(outParam, outParamSize, "%.0f ms", releaseMs);
-            //std::snprintf(outParam, outParamSize, is_AutoRelease ? "%.0f ms (slow end, Auto)" : "%.0f ms", releaseMs);
+            std::snprintf(outParam, outParamSize, is_AutoRelease ? "%.0f ms (slow end, Auto)" : "%.0f ms", releaseMs);
             break;
 
         case ID_SLIDER_4:

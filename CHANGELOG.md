@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.7 (2026-10-24)
+- New "Auto Release" button
+
 ## 2.0.6 (2026-10-18)
 - True Peak Detector 4x/8x (now 8x by default)
 

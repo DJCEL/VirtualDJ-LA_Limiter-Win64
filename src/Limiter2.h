@@ -34,6 +34,7 @@ public:
     void setTruePeak(bool enabled);
     void setTruePeakOversampling(int factor); // 4 (default, 12 taps/phase) or 8 (24 taps/phase, more accurate near Nyquist)
     void setReleaseMs(float ms, float minMs, float maxMs);   // 5..1000 ms, default 150
+    void setAutoRelease(bool enabled);                       // false (default): fixed release. true: program-dependent release,
     void setHoldMs(float ms, float minMs, float maxMs);      // 10..100 ms, default 30 (>= half a bass period, avoids LF distortion)
     void setFinalSecurity(bool enabled); // last security (clamp between -1.0f and 1.0f)
 	void setLookaheadMs(float ms, float minMs, float maxMs); // 0.5..5.0 ms, default 1.25 (affects audio delay and attack ramp length)
@@ -51,6 +52,9 @@ private:
     static constexpr int   MIN_LATENCY = 16;               // samples
     static constexpr float FADE_IN_MS  = 5.0f;             // start-up crossfade dry -> processed
     static constexpr float FADE_OUT_MS = 5.0f;  // fade-out duration (same as fade-in for consistency)
+    static constexpr float AUTO_FAST_MS = 20.0f;   // Auto release: fast time constant (brief peaks)
+    static constexpr float AUTO_SUSTAIN_MS = 400.0f;  // Auto release: averaging time of the limiting depth
+    static constexpr float AUTO_SUSTAIN_REF = 0.34f;   // Auto release: mean depth (linear, ~3.5 dB) that gives the full slow release; calibrated so that Auto sits halfway between fast and slow release at 120 BPM
     static constexpr float MIN_LINEAR  = 1.0e-8f;
 
     // O(1) amortized sliding-window minimum (monotonic deque).
@@ -95,6 +99,7 @@ private:
     std::atomic<float> driveTarget   { 1.0f };
     std::atomic<float> ceilingTarget { 1.0f };
     std::atomic<float> releaseMs     { 150.0f };
+    std::atomic<bool>  autoRelease   { false };
     std::atomic<float> holdMs        { 30.0f };
     std::atomic<bool>  truePeak      { false };
     std::atomic<int>   truePeakOs    { 4 };      // 4 or 8
@@ -111,6 +116,9 @@ private:
     int   rampLength = 1;             // length of sliding-min and moving-average windows
     float driveCoef  = 0.0f;          // drive smoothing (one-pole)
     float releaseCoef = 0.0f;
+    float autoSlowRate = 0.0f;        // 1 - releaseCoef
+    float autoFastRate = 0.0f;        // >= autoSlowRate
+    float sustainRate = 0.0f;        // one-pole rate of the limiting-depth average
     float appliedReleaseMs = -1.0f;
     int   holdSamples = 1;
     int   fadePos = 0;                // start-up crossfade position (samples)
@@ -147,5 +155,6 @@ private:
     MovingAverage movingAvg2;
 
     float releaseGain   = 1.0f;
+    float sustain = 0.0f;       // slow average of the limiting depth (1 - gain target)
     float driveSmoothed = 1.0f;
 };

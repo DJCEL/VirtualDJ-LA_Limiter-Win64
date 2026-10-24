@@ -25,7 +25,7 @@ CLA_Limiter::~CLA_Limiter()
 HRESULT VDJ_API CLA_Limiter::OnLoad()
 {
     DeclareParameterSwitch(&m_isOn, ID_SWITCH_1, "O", "O", false);
-    DeclareParameterSlider(&SliderValue[0], ID_SLIDER_1, "Threshold", "THR", 0.0f);
+    DeclareParameterSlider(&SliderValue[0], ID_SLIDER_1, "Threshold", "THR", 0.1f);
     DeclareParameterSlider(&SliderValue[1], ID_SLIDER_2,"Output","OUT",0.0f);
     DeclareParameterSlider(&SliderValue[2], ID_SLIDER_3, "releaseMs", "REL", 0.146f);
     DeclareParameterSlider(&SliderValue[3], ID_SLIDER_4, "holdMs", "HOL", 0.3f);

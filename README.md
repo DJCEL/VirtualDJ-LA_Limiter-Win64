@@ -3,3 +3,5 @@
 A VirtualDJ Sound Effect for Windows 64-bit
 
 A look-ahead peak limiter
+
+It is recommended to use this plugin with the option "fxProcessing = Post-fader" in VirtualDJ

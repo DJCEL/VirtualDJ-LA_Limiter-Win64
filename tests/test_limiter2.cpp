@@ -125,6 +125,7 @@ struct Cfg
     int   os = 8;
     float hold = 30.0f, rel = 150.0f, look = 1.25f;
     bool  sec = false;
+    bool  autoRel = false;   // Auto release (program-dependent)
 };
 
 static void configure(CLimiter2& L, const Cfg& c)
@@ -137,6 +138,7 @@ static void configure(CLimiter2& L, const Cfg& c)
     L.setReleaseMs(c.rel, 5.0f, 1000.0f);
     L.setLookaheadMs(c.look, 0.5f, 5.0f);
     L.setFinalSecurity(c.sec);
+    L.setAutoRelease(c.autoRel);
 }
 
 static Sig run(const Cfg& c, Sig in, int block = 512, int* latency = nullptr)
@@ -506,6 +508,138 @@ static void test12_cpu()
     }
 }
 
+// 13. Auto release: brief peaks recover fast, sustained limiting recovers slowly,
+//     and nothing else (ceiling, bass distortion, determinism) gets worse.
+static double recoveryT90Ms(const Cfg& c, double burstSec)
+{
+    const int sr = c.sr; const size_t on = sr / 3, end = on + (size_t)(burstSec * sr), N = end + sr * 2;
+    std::vector<double> x(N, 0.0);
+    for (size_t i = 0; i < N; ++i) x[i] = ((i < on) ? 0.0 : (i < end) ? 0.9 : 0.05) * std::sin(2 * PI * 1000.0 * i / sr);
+    int lat = 0; const Sig y = run(c, stereo(x), 512, &lat);
+    const double drive = lin(-c.thr);
+    const int win = sr / 1000;                      // 1 ms
+    std::vector<double> g;
+    for (size_t t = end; t + win < N - lat; t += win)
+    {
+        double po = 0, pi_ = 0;
+        for (size_t i = t; i < t + win; ++i) { po = (std::max)(po, (double)std::fabs(y[2 * (i + lat)])); pi_ = (std::max)(pi_, std::fabs(x[i]) * drive); }
+        g.push_back(po / pi_);
+    }
+    const double g0 = g.front();
+    size_t k = 0; while (k < g.size() && g[k] < g0 + (1.0 - g0) * 0.9) ++k;
+    return static_cast<double>(k);   // 1 window = 1 ms
+}
+
+// Gain ripple (max - min of the applied gain, 1 ms resolution) on a train of loud 10 ms hits over a quiet bed.
+static double gainRipple(const Cfg& c, double periodSec)
+{
+    const int sr = c.sr; const size_t N = sr * 5, period = (size_t)(periodSec * sr), hit = sr / 100;
+    std::vector<double> x(N);
+    for (size_t i = 0; i < N; ++i) x[i] = (((i % period) < hit) ? 0.9 : 0.2) * std::sin(2 * PI * 1000.0 * i / sr);
+    int lat = 0; const Sig y = run(c, stereo(x), 512, &lat);
+    const double drive = lin(-c.thr); const int win = sr / 1000;
+    double gmin = 9, gmax = 0;
+    for (size_t t = sr * 3; t + win < N - lat; t += win)
+    {
+        double po = 0, pi_ = 0;
+        for (size_t i = t; i < t + win; ++i) { po = (std::max)(po, (double)std::fabs(y[2 * (i + lat)])); pi_ = (std::max)(pi_, std::fabs(x[i]) * drive); }
+        gmin = (std::min)(gmin, po / pi_); gmax = (std::max)(gmax, po / pi_);
+    }
+    return gmax - gmin;
+}
+
+// Mean level (dB) of a steady 1 kHz bed under a kick drum repeating every `period` seconds.
+static double bedMeanDb(const Cfg& c, double period)
+{
+    const int sr = c.sr; const size_t N = sr * 8; std::vector<double> x(N);
+    for (size_t i = 0; i < N; ++i) {
+        const double t = double(i) / sr, tk = std::fmod(t, period);
+        x[i] = 0.25 * std::sin(2 * PI * 1000.0 * t) + 0.9 * std::exp(-tk * 18.0) * std::sin(2 * PI * (55.0 + 90.0 * std::exp(-tk * 30.0)) * tk); }
+    int lat = 0; const Sig y = run(c, stereo(x), 512, &lat);
+    const int win = sr / 200; const double drive = lin(-c.thr); double sum = 0; int n = 0;
+    for (size_t t = sr * 2; t + win < N - lat; t += win) {
+        double a = 0, b = 0;
+        for (int i = 0; i < win; ++i) { const double ph = 2 * PI * 1000.0 * (t + i) / sr, v = y[2 * (t + i + lat)]; a += v * std::cos(ph); b += v * std::sin(ph); }
+        sum += dB(2.0 * std::sqrt(a * a + b * b) / win / (0.25 * drive)); ++n; }
+    return sum / n;
+}
+
+static void test13_auto_release()
+{
+    std::printf("\n[13] Auto release (slow end = Release 300 ms, hold 30 ms)\n");
+    Cfg m; m.thr = -12; m.ceil = -1; m.tp = false; m.rel = 300; m.hold = 30; m.autoRel = false;
+    Cfg a = m; a.autoRel = true;
+    const double mShort = recoveryT90Ms(m, 0.04), mLong = recoveryT90Ms(m, 1.5);
+    const double aShort = recoveryT90Ms(a, 0.04), aLong = recoveryT90Ms(a, 1.5);
+    std::printf("         (info) time to recover 90%% of the gain reduction:\n");
+    std::printf("         (info)   manual : 40 ms hit %4.0f ms | 1.5 s passage %4.0f ms\n", mShort, mLong);
+    std::printf("         (info)   auto   : 40 ms hit %4.0f ms | 1.5 s passage %4.0f ms\n", aShort, aLong);
+    check(aShort < 0.5 * mShort, "brief hit recovers at least 2x faster", fmt("%.0f ms vs %.0f ms manual", aShort, mShort));
+
+    // Dense material (a hit every 100 ms): a fast release pumps, a slow one does not. Auto must behave like the slow one.
+    Cfg f = m; f.rel = 20;
+    const double rFast = gainRipple(f, 0.1), rSlow = gainRipple(m, 0.1), rAuto = gainRipple(a, 0.1);
+    std::printf("         (info) gain ripple, hits every 100 ms: manual 20 ms %.2f | manual 300 ms %.2f | auto %.2f\n", rFast, rSlow, rAuto);
+    check(rAuto < 0.6 * rFast, "dense hits: much less pumping than a fast release", fmt("ripple %.2f vs %.2f (limit 60%%)", rAuto, rFast));
+    check(rAuto < 0.5 * (rFast + rSlow), "dense hits: below the midpoint fast/slow", fmt("ripple %.2f < %.2f", rAuto, 0.5 * (rFast + rSlow)));
+    const double sFast = gainRipple(f, 1.0), sAuto = gainRipple(a, 1.0), sSlow = gainRipple(m, 1.0);
+    std::printf("         (info) gain ripple, hits every 1 s:    manual 20 ms %.2f | manual 300 ms %.2f | auto %.2f\n", sFast, sSlow, sAuto);
+    check(sAuto > 0.9 * sFast, "sparse hits: recovers fully like a fast release", fmt("ripple %.2f vs %.2f", sAuto, sFast));
+
+    // Calibration: Auto must move from "fast" to "slow" as the tempo goes up, and sit halfway at 120 BPM.
+    {
+        double pct[3]; const double bpm[3] = { 100.0, 120.0, 140.0 };
+        for (int k = 0; k < 3; ++k) {
+            const double per = 60.0 / bpm[k];
+            const double fastL = bedMeanDb(f, per), slowL = bedMeanDb(m, per), autoL = bedMeanDb(a, per);
+            pct[k] = 100.0 * (autoL - fastL) / (slowL - fastL);
+        }
+        std::printf("         (info) Auto position between fast (0%%) and slow (100%%): 100 BPM %.0f%% | 120 BPM %.0f%% | 140 BPM %.0f%%\n", pct[0], pct[1], pct[2]);
+        check(pct[1] >= 35.0 && pct[1] <= 65.0, "120 BPM: Auto sits halfway", fmt("%.0f %% (35..65)", pct[1]));
+        check(pct[0] < pct[1] && pct[1] < pct[2], "faster tempo -> slower release", fmt("%.0f < %.0f < %.0f", pct[0], pct[1], pct[2]));
+    }
+
+    // ceiling guarantee is untouched (sample peak, TP off)
+    double worst = -99; std::string wn;
+    for (const Stim& s : makeStimuli(48000))
+    {
+        Cfg c; c.tp = false; c.autoRel = true;
+        const Sig y = run(c, stereo(s.x));
+        const double p = dB(samplePeak(y, s.onset, y.size() / 2));
+        if (p > worst) { worst = p; wn = s.name; }
+    }
+    check(worst <= -1.0 + 0.02, "sample-peak ceiling with Auto", fmt("worst %+.3f dBFS", worst) + " - " + wn);
+
+    // bass distortion on a sustained tone
+    for (double f : { 40.0, 50.0, 100.0 })
+    {
+        Cfg c; c.thr = -6; c.ceil = -3; c.hold = 30; c.autoRel = true;
+        std::vector<double> x(48000 * 3);
+        for (size_t i = 0; i < x.size(); ++i) x[i] = 0.9 * std::sin(2 * PI * f * i / 48000.0);
+        const Sig y = run(c, stereo(x));
+        const double th = thdPlusNoiseDb(y, 48000, 48000, f, 48000);
+        check(th < -80.0, fmt("%.0f Hz sustained, Auto", f), fmt("%.1f dB (limit -80)", th));
+    }
+
+    // determinism + live toggling
+    const Stim s = makeStimuli(48000)[18];
+    Cfg c; c.autoRel = true;
+    const Sig ref = run(c, stereo(s.x), 512);
+    bool same = true;
+    for (int block : { 1, 37, 4096 }) { const Sig y = run(c, stereo(s.x), block); same &= (std::memcmp(ref.data(), y.data(), ref.size() * sizeof(float)) == 0); }
+    check(same, "block-size independent (bit-exact)", "");
+
+    CLimiter2 L; Cfg d; configure(L, d); L.start(48000);
+    Sig y = stereo(s.x); bool finite = true;
+    for (long i = 0, n = (long)(y.size() / 2); i < n; i += 512)
+    {
+        L.setAutoRelease(((i / 512) % 6) < 3);
+        L.process(&y[2 * i], (int)(std::min<long>)(512, n - i));
+    }
+    for (float v : y) if (!std::isfinite(v)) finite = false;
+    check(finite && dB(samplePeak(y, s.onset, y.size() / 2)) <= -1.0 + 0.02, "live Manual<->Auto toggling", fmt("peak %+.3f dBFS", dB(samplePeak(y, s.onset, y.size() / 2))));
+}
+
 int main()
 {
     std::printf("CLimiter2 regression tests\n==========================\n");
@@ -522,6 +656,7 @@ int main()
     test10_stereo_link();
     test11_stop();
     test12_cpu();
+    test13_auto_release();
     std::printf("\n%d checks, %d failed\n", g_checks, g_failed);
     return g_failed ? 1 : 0;
 }

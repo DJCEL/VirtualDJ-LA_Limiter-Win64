@@ -123,7 +123,7 @@ void CLA_Limiter::OnButton(int id)
             limiter.setTruePeak(is_TruePeak != 0);
             break;
         case ID_SWITCH_4:
-            //limiter.setAutoRelease(is_AutoRelease != 0);
+            limiter.setAutoRelease(is_AutoRelease != 0);
             break;
 	}
 }

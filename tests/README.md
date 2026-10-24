@@ -27,6 +27,7 @@ Linux / macOS / WSL:
 | 10 | Stereo link | L/R gains equal within 0.05 dB |
 | 11 | `stop()` fade-out | silent at the end of the fade |
 | 12 | CPU cost (optimised build only) | > 50x real time |
+| 13 | Auto release: brief hit recovers >= 2x faster than manual, dense hits pump much less than a fast release, ceiling / bass distortion / determinism unchanged | see report |
 
 ## Reading the report
 

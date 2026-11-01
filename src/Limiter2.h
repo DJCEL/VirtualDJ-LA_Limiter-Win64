@@ -60,7 +60,7 @@ private:
     // O(1) amortized sliding-window minimum (monotonic deque).
     struct SlidingMin
     {
-        void  init(int maxWindow);          // allocates for windows up to maxWindow
+        void  init(int maxWindow);
         void  setWindow(int w) { window = (std::max)(1, (std::min)(w, maxWindow)); }
         void  clear();
         float push(float v);
@@ -95,7 +95,7 @@ private:
     float dbToLinear(float db);
     double besselI0(double x);
 
-    // Parameters (written by the UI thread, read once per block by the audio thread)
+    // Parameters
     std::atomic<float> driveTarget   { 1.0f };
     std::atomic<float> ceilingTarget { 1.0f };
     std::atomic<float> releaseMs     { 150.0f };
@@ -106,7 +106,7 @@ private:
     std::atomic<bool>  finalSecurity { false };
     std::atomic<float> lookaheadMs { DEFAULT_LATENCY_MS };
 
-    // Meters (written by the audio thread)
+    // Meters
     std::atomic<float> lastGain      { 1.0f };
     std::atomic<int>   activeFrames  { 0 };
 

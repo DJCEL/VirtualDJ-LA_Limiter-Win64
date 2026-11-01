@@ -2,8 +2,6 @@
 
 #include "vdjDsp8.h"
 #include "Limiter2.h"
-#include <cstdio>
-#include <cstring>
 
 class CLA_Limiter : public IVdjPluginDsp8
 {
